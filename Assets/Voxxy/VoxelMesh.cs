@@ -33,7 +33,6 @@ namespace Voxxy {
 
         private VoxFile vox;
 
-        [ContextMenu("Reimport VOX")]
         public void ImportVox() {
             Debug.Log("Name: " + voxFile.name);
             Debug.Log("ToString: " + voxFile.ToString());
@@ -75,6 +74,8 @@ namespace Voxxy {
 
         [ContextMenu("Construct Mesh")]
         public void ConstructMesh() {
+            ImportVox();
+
             var model = new VoxelModel(vox.Size);
 
             model.Fill(Voxel.unknown);

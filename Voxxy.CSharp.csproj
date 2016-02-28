@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Voxxy\Coordinate.cs" />
+    <Compile Include="Assets\Voxxy\Todo.cs" />
     <Compile Include="Assets\Voxxy\VoxFile.cs" />
     <Compile Include="Assets\Voxxy\Voxel.cs" />
     <Compile Include="Assets\Voxxy\VoxelFace.cs" />
