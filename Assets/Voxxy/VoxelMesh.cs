@@ -18,6 +18,9 @@ namespace Voxxy {
         [Tooltip("The center of the model as a propotion of each side.  Values below 0 and above 1 can be used to move the center outside of the model's volume.  The size of the model is determined by the VOX file and not by the area filled by voxels.")]
         public Vector3 center = new Vector3(0.5f, 0.5f, 0.5f);
 
+        [Tooltip("The number of unity units (i.e. meters) that each voxel will occupy.")]
+        public float voxelSize = 1.0f;
+
         public DateTime filedate; // TODO: Use this to automatically reload changed model.
 
         public string filedateString; // TODO: Remove.
@@ -193,10 +196,10 @@ namespace Voxxy {
                                 faceCenter = new Vector3(face.Bounds.center.x, y, face.Bounds.center.y);
                             }
                             
-                            vertices.Add(centerOffset + faceCenter + vertex0);
-                            vertices.Add(centerOffset + faceCenter + vertex1);
-                            vertices.Add(centerOffset + faceCenter + vertex2);
-                            vertices.Add(centerOffset + faceCenter + vertex3);
+                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex0));
+                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex1));
+                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex2));
+                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex3));
 
                             uvs.Add(new Vector2(0, 1));
                             uvs.Add(new Vector2(1, 1));
