@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UnityEditor;
 using UnityEngine;
 
 namespace Voxxy {
@@ -11,7 +12,8 @@ namespace Voxxy {
     [RequireComponent(typeof(MeshRenderer))]
     public class VoxelMesh : MonoBehaviour {
 
-        public string filename;
+        [Tooltip("The VOX file (expored from Magica Voxel or similar) that will be imported into a Unity3d friendly mesh.")]
+        public DefaultAsset voxFile;
 
         public DateTime filedate; // TODO: Use this to automatically reload changed model.
 
@@ -27,11 +29,15 @@ namespace Voxxy {
 
         [ContextMenu("Reimport VOX")]
         public void ImportVox() {
+            Debug.Log("Name: " + voxFile.name);
+            Debug.Log("ToString: " + voxFile.ToString());
+            Debug.Log("pathToVox: " + AssetDatabase.GetAssetPath(voxFile));
+            var filepath = AssetDatabase.GetAssetPath(voxFile);
             vox = new VoxFile();
-            var file = new FileInfo(filename);
+            var file = new FileInfo(filepath);
             filedate = file.LastWriteTimeUtc;
             filedateString = filedate.ToString();
-            vox.Open(filename);
+            vox.Open(filepath);
         }
 
         [ContextMenu("Construct Cubes")]
@@ -58,7 +64,7 @@ namespace Voxxy {
                     break;
                 }
             }
-            Debug.Log(String.Format("Created {0} voxels from {1}.", count, filename));
+            Debug.Log(String.Format("Created {0} voxels from {1}.", count, voxFile.name));
         }
 
         [ContextMenu("Construct Mesh")]
@@ -76,15 +82,6 @@ namespace Voxxy {
             vertices = new List<Vector3>();
             uvs = new List<Vector2>();
             triangles = new List<int>();
-
-            foreach(var coord in Coordinate.Solid(Coordinate.zero, vox.Size)) {
-                //AddFaceIfClear(model, coord, Coordinate.back);
-                //AddFaceIfClear(model, coord, Coordinate.forward);
-                //AddFaceIfClear(model, coord, Coordinate.left);
-                //AddFaceIfClear(model, coord, Coordinate.right);
-                //AddFaceIfClear(model, coord, Coordinate.up);
-                //AddFaceIfClear(model, coord, Coordinate.down);
-            }
 
             for(int x = 0; x < vox.Size.x; ++x) {
                 var min = new Coordinate(x, 0, 0);
@@ -106,20 +103,34 @@ namespace Voxxy {
             }
 
             Mesh mesh = new Mesh();
-            mesh.name = "Vox Model " + filename;
+            mesh.name = voxFile.name + "VOX Model";
             mesh.vertices = vertices.ToArray();
             mesh.triangles = triangles.ToArray();
             mesh.uv = uvs.ToArray();
             mesh.RecalculateNormals();
             gameObject.GetComponent<MeshFilter>().sharedMesh = mesh;
 
-            Debug.Log("Constructed mesh for vox model: " + filename);
+            Debug.Log("Constructed mesh for vox model: " + voxFile.name);
         }
 
         List<Vector3> vertices;
         List<Vector2> uvs;
         List<int> triangles;
 
+        /// <summary>
+        /// Vertices are mapped to position that would be correct for the 'forward' face (that is, +z direction).
+        /// Quaternions are used to rotate this face in the direction of the occluding coordinate.
+        ///        _________
+        ///       /1       /|0
+        ///      /        / |
+        ///     /________/  |
+        ///     |       |   |
+        ///     |  2    |  / 3            y
+        ///     |       | /               |  /z
+        ///     |_______|/                | /
+        ///                               |/_____x
+        /// </summary>
+        /// <param name="occludingDirection">The unit coordinate that indicates the direction, no validation is done, take care.</param>
         private void AddFaces(VoxelModel model, Coordinate from, Coordinate to, Coordinate occludingDirection) {
             var planeExtentX = from.x == to.x - 1 ? to.z : to.x;
             var planeExtentY = from.y == to.y - 1 ? to.z : to.y;
@@ -199,58 +210,6 @@ namespace Voxxy {
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Vertices are mapped to position that would be correct for the 'forward' face (that is, +z direction).
-        /// Quaternions are used to rotate this face in the direction of the occluding coordinate.
-        ///        _________
-        ///       /1       /|0
-        ///      /        / |
-        ///     /________/  |
-        ///     |       |   |
-        ///     |  2    |  / 3            y
-        ///     |       | /               |  /z
-        ///     |_______|/                | /
-        ///                               |/_____x
-        /// </summary>
-        /// <param name="occludingCoord">The unit coordinate that indicates the direction, no validation is done, take care.</param>
-        private void AddFaceIfClear(VoxelModel model, Coordinate coord, Coordinate occludingCoord) {
-            if(IsFace(model, coord, occludingCoord)) {
-
-                var index = vertices.Count;
-
-                var angle = Quaternion.LookRotation(occludingCoord);
-               
-                vertices.Add((Vector3)coord + angle * new Vector3( 0.5f,  0.5f, 0.5f)); // 0
-                vertices.Add((Vector3)coord + angle * new Vector3(-0.5f,  0.5f, 0.5f)); // 1
-                vertices.Add((Vector3)coord + angle * new Vector3(-0.5f, -0.5f, 0.5f)); // 2
-                vertices.Add((Vector3)coord + angle * new Vector3( 0.5f, -0.5f, 0.5f)); // 3
-
-                uvs.Add(new Vector2(0, 0));
-                uvs.Add(new Vector2(1, 0));
-                uvs.Add(new Vector2(1, 1));
-                uvs.Add(new Vector2(0, 1));
-
-                triangles.Add(index);
-                triangles.Add(index + 1);
-                triangles.Add(index + 2);
-                triangles.Add(index);
-                triangles.Add(index + 2);
-                triangles.Add(index + 3);
-            }
-        }
-
-        private bool IsFace(VoxelModel model, Coordinate coord, Coordinate occludingCoord) {
-            var voxel = model[coord];
-            var occludingVoxel = model[coord + occludingCoord];
-            return voxel.type == VoxelType.Visible && !occludingVoxel.IsSolid;
-        }
-
-        private bool IsOccludedFace(VoxelModel model, Coordinate coord, Coordinate occludingCoord) {
-            var voxel = model[coord];
-            var occludingVoxel = model[coord + occludingCoord];
-            return voxel.IsSolid && occludingVoxel.IsSolid;
         }
 
     }
