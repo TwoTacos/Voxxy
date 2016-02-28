@@ -15,16 +15,16 @@ namespace Voxxy {
         [Tooltip("The VOX file (expored from Magica Voxel or similar) that will be imported into a Unity3d friendly mesh.")]
         public DefaultAsset voxFile;
 
-        [Tooltip("")]
-        public Vector3 center;
+        [Tooltip("The center of the model as a propotion of each side.  Values below 0 and above 1 can be used to move the center outside of the model's volume.  The size of the model is determined by the VOX file and not by the area filled by voxels.")]
+        public Vector3 center = new Vector3(0.5f, 0.5f, 0.5f);
 
         public DateTime filedate; // TODO: Use this to automatically reload changed model.
 
         public string filedateString; // TODO: Remove.
 
-        [Tooltip("The percent of occluded voxels allowed on any given face.  Use 0% to only render visible surface decreasing GPU overdraw.  Use 100% to extend faces as far as necessary to decrease triangles.")]
+        [Tooltip("The percent of occluded voxels allowed on any given face.  0% will only render visible surface decreasing GPU overdraw.  Use 100% to extend faces into the model to decrease triangles.  Default of 40% is good for most situations.")]
         [Range(0, 100)]
-        public int maximumOcclusionPercent = 50;
+        public int maximumOcclusionPercent = 40;
 
         public GameObject CubePrefab;
 
@@ -161,6 +161,8 @@ namespace Voxxy {
 
             var angle = Quaternion.LookRotation(occludingDirection);
 
+            var centerOffset = new Vector3(-(vox.Size.x - 1) * center.x, -(vox.Size.y - 1) * center.y, -(vox.Size.z - 1) * center.z);
+
             for(var x = from.x; x < to.x; ++x) {
                 for(var y = from.y; y < to.y; ++y) {
                     for(var z = from.z; z < to.z; ++z) {
@@ -183,18 +185,18 @@ namespace Voxxy {
                             var vertex2 = angle * new Vector3(-xOffset, -yOffset, zOffset);
                             var vertex3 = angle * new Vector3( xOffset, -yOffset, zOffset);
 
-                            var center = new Vector3(face.Bounds.center.x, face.Bounds.center.y, z);
+                            var faceCenter = new Vector3(face.Bounds.center.x, face.Bounds.center.y, z);
                             if(from.x == to.x - 1) {
-                                center = new Vector3(x, face.Bounds.center.y, face.Bounds.center.x);
+                                faceCenter = new Vector3(x, face.Bounds.center.y, face.Bounds.center.x);
                             }
                             if(from.y == to.y - 1) {
-                                center = new Vector3(face.Bounds.center.x, y, face.Bounds.center.y);
+                                faceCenter = new Vector3(face.Bounds.center.x, y, face.Bounds.center.y);
                             }
                             
-                            vertices.Add(center + vertex0);
-                            vertices.Add(center + vertex1);
-                            vertices.Add(center + vertex2);
-                            vertices.Add(center + vertex3);
+                            vertices.Add(centerOffset + faceCenter + vertex0);
+                            vertices.Add(centerOffset + faceCenter + vertex1);
+                            vertices.Add(centerOffset + faceCenter + vertex2);
+                            vertices.Add(centerOffset + faceCenter + vertex3);
 
                             uvs.Add(new Vector2(0, 1));
                             uvs.Add(new Vector2(1, 1));
