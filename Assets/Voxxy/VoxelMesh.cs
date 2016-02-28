@@ -98,6 +98,7 @@ namespace Voxxy {
             mesh.RecalculateNormals();
             gameObject.GetComponent<MeshFilter>().sharedMesh = mesh;
 
+            Debug.Log("Constructed mesh for vox model: " + filename);
         }
 
         List<Vector3> vertices;

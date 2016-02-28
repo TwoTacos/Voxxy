@@ -16,7 +16,6 @@ namespace Voxxy {
         /// </summary>
         public VoxelFace(Voxel[,] plane, Coordinate max) {
             this.plane = plane;
-            OcclusionPercent = 0.0f;
             Max = max;
         }
 
@@ -34,11 +33,19 @@ namespace Voxxy {
 
         public Coordinate End { get; private set; }
 
+        private int SolidCount { get; set; }
+
+        private int OccludedCount { get; set; }
+
         /// <summary>
         /// The percentage of the face mesh that is completely occluded by the model itself.
         /// This is the key performance increase as we are trading off pixel overdraws against fewer triangles.
         /// </summary>
-        public float OcclusionPercent { get; private set; }
+        public float OcclusionPercent {
+            get {
+                return (float)OccludedCount / SolidCount;
+            }
+        }
 
         public Bounds Bounds {
             get {
@@ -47,26 +54,46 @@ namespace Voxxy {
         }
 
         public bool Extend() {
-            return ExtendLeft() | ExtendRight() | ExtendUp() | ExtendDown();
+            return ExtendRight() | ExtendDown() | ExtendLeft() | ExtendUp();
         }
 
         private bool ExtendLeft() {
             if(Start.x - 1 < 0) {
                 return false; // no where left to go.
             }
+            var success = GenericExtend(Start.x - 1, Start.x, Start.y, End.y);
+            if(success) {
+                Start += Coordinate.left;
+            }
+            return success;
+        }
+
+        private bool GenericExtend(int startX, int endX, int startY, int endY) {
             int solidCount = 0;
-            //int occludedCount;
-            var x = Start.x - 1;
-            for(int y = Start.y; y < End.y; ++y) {
-                var voxel = plane[x, y];
-                if(voxel.IsSolid) {
-                    ++solidCount;
-                }
-                else {
-                    return false; // can't extend over non-solid voxel.
+            int occludedCount = 0;
+            for(int x = startX; x < endX; ++x) {
+                for(int y = startY; y < endY; ++y) {
+                    var voxel = plane[x, y];
+                    if(voxel.IsSolid) {
+                        ++solidCount;
+                        if(voxel.type == VoxelType.Occluded) {
+                            ++occludedCount;
+                        }
+                    }
+                    else {
+                        return false; // can't extend over non-solid voxel.
+                    }
                 }
             }
-            Start += Coordinate.left;
+            if(occludedCount == solidCount) {
+                return false; // everything we would have encompassed was occluded.
+            }
+            var resultOcclusionPercent = (float)(OccludedCount + occludedCount) / (SolidCount + solidCount);
+            if(resultOcclusionPercent > 0.5f) {
+                return false; // too great a percentage of occluded children.
+            }
+            SolidCount += solidCount;
+            OccludedCount += occludedCount;
             return true;
         }
 
@@ -74,60 +101,33 @@ namespace Voxxy {
             if(End.x + 1 > Max.x) {
                 return false; // no where left to go.
             }
-            int solidCount = 0;
-            //int occludedCount;
-            var x = End.x;
-            for(int y = Start.y; y < End.y; ++y) {
-                var voxel = plane[x, y];
-                if(voxel.IsSolid) {
-                    ++solidCount;
-                }
-                else {
-                    return false; // can't extend over non-solid voxel.
-                }
+            var success = GenericExtend(End.x, End.x + 1, Start.y, End.y);
+            if(success) {
+                End += Coordinate.right;
             }
-            End += Coordinate.right;
-            return true;
+            return success;
         }
 
         private bool ExtendUp() {
             if(End.y + 1 > Max.y) {
                 return false; // no where left to go.
             }
-            int solidCount = 0;
-            //int occludedCount;
-            var y = End.y;
-            for(int x = Start.x; x < End.x; ++x) {
-                var voxel = plane[x, y];
-                if(voxel.IsSolid) {
-                    ++solidCount;
-                }
-                else {
-                    return false; // can't extend over non-solid voxel.
-                }
+            var success = GenericExtend(Start.x, End.x, End.y, End.y + 1);
+            if(success) {
+                End += Coordinate.up;
             }
-            End += Coordinate.up;
-            return true;
+            return success;
         }
 
         private bool ExtendDown() {
             if(Start.y - 1 < 0) {
                 return false; // no where left to go.
             }
-            int solidCount = 0;
-            //int occludedCount;
-            var y = Start.y - 1;
-            for(int x = Start.x; x < End.x; ++x) {
-                var voxel = plane[x, y];
-                if(voxel.IsSolid) {
-                    ++solidCount;
-                }
-                else {
-                    return false; // can't extend over non-solid voxel.
-                }
+            var success = GenericExtend(Start.x, End.x, Start.y - 1, Start.y);
+            if(success) {
+                Start += Coordinate.down;
             }
-            Start += Coordinate.down;
-            return true;
+            return success;
         }
 
         public void ClearPlane() {
