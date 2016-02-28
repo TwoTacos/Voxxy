@@ -62,7 +62,7 @@ namespace Voxxy {
                     this[coord] = toVoxel;
                 }
             }
-            // Progressively move inward marking NoInfomration as Empty if they have an empty neighbor.
+            // Progressively move inward marking NoInformation as Empty if they have an empty neighbor.
             do {
                 start = start + Coordinate.one;
                 end = end - Coordinate.one;

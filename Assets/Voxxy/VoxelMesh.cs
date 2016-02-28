@@ -13,11 +13,13 @@ namespace Voxxy {
 
         public string filename;
 
-        public string dummy;
-
         public DateTime filedate; // TODO: Use this to automatically reload changed model.
 
         public string filedateString; // TODO: Remove.
+
+        [Tooltip("The percent of occluded voxels allowed on any given face.  Use 0% to only render visible surface.  Use 100% to extend faces as far as necessary to triangulate.")]
+        [Range(0, 100)]
+        public int maximumOcclusionPercent = 50;
 
         public GameObject CubePrefab;
 
@@ -77,9 +79,9 @@ namespace Voxxy {
 
             foreach(var coord in Coordinate.Solid(Coordinate.zero, vox.Size)) {
                 //AddFaceIfClear(model, coord, Coordinate.back);
-                AddFaceIfClear(model, coord, Coordinate.forward);
+                //AddFaceIfClear(model, coord, Coordinate.forward);
                 AddFaceIfClear(model, coord, Coordinate.left);
-                AddFaceIfClear(model, coord, Coordinate.right);
+                //AddFaceIfClear(model, coord, Coordinate.right);
                 AddFaceIfClear(model, coord, Coordinate.up);
                 AddFaceIfClear(model, coord, Coordinate.down);
             }
@@ -88,6 +90,13 @@ namespace Voxxy {
                 var min = new Coordinate(0, 0, z);
                 var max = new Coordinate(vox.Size.x, vox.Size.y, z);
                 AddFaces(model, min, max, Coordinate.back);
+                AddFaces(model, min, max, Coordinate.forward);
+            }
+            for(int y = 0; y < vox.Size.y; ++y) {
+                var min = new Coordinate(0, y, 0);
+                var max = new Coordinate(vox.Size.x, y, vox.Size.z);
+                AddFaces(model, min, max, Coordinate.up);
+                AddFaces(model, min, max, Coordinate.down);
             }
 
             Mesh mesh = new Mesh();
@@ -105,7 +114,6 @@ namespace Voxxy {
         List<Vector2> uvs;
         List<int> triangles;
 
-
         private void AddFaces(VoxelModel model, Coordinate from, Coordinate to, Coordinate occludingCoord) {
             // Copy plane slice out of model.
             Voxel[,] plane = new Voxel[to.x, to.y];
@@ -114,7 +122,7 @@ namespace Voxxy {
                     var coord = new Coordinate(x, y, to.z);
                     var voxel = model[coord];
                     var occluding = model[coord + occludingCoord];
-                    if(voxel.type == VoxelType.Visible && occluding.type == VoxelType.Visible) {
+                    if(voxel.type == VoxelType.Visible && occluding.IsSolid) {
                         plane[x, y] = Voxel.occluded;
                     }
                     else {
@@ -128,7 +136,7 @@ namespace Voxxy {
             for(short x = from.x; x < to.x; ++x) {
                 for(short y = from.y; y < to.y; ++y) {
                     if(plane[x, y].type == VoxelType.Visible) { 
-                        var face = new VoxelFace(plane, to);
+                        var face = new VoxelFace(plane, to, maximumOcclusionPercent / 100f);
                         var coord = new Coordinate(x, y, from.z);
                         face.Create(coord);
 
@@ -213,7 +221,7 @@ namespace Voxxy {
         private bool IsFace(VoxelModel model, Coordinate coord, Coordinate occludingCoord) {
             var voxel = model[coord];
             var occludingVoxel = model[coord + occludingCoord];
-            return voxel.type == VoxelType.Visible && !(occludingVoxel.type == VoxelType.Visible);
+            return voxel.type == VoxelType.Visible && !occludingVoxel.IsSolid;
         }
 
         private bool IsOccludedFace(VoxelModel model, Coordinate coord, Coordinate occludingCoord) {

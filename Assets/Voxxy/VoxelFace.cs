@@ -14,8 +14,9 @@ namespace Voxxy {
         /// <summary>
         /// Create a new VoxelSpace where the lower-left voxel is in this plane at position (x, y).
         /// </summary>
-        public VoxelFace(Voxel[,] plane, Coordinate max) {
+        public VoxelFace(Voxel[,] plane, Coordinate max, float maximumOcclusionPercent) {
             this.plane = plane;
+            MaximumOcclusionPercent = maximumOcclusionPercent;
             Max = max;
         }
 
@@ -24,6 +25,8 @@ namespace Voxxy {
             End = Start + Coordinate.one;
             return plane[Start.x, Start.y].type == VoxelType.Visible;
         }
+
+        public float MaximumOcclusionPercent { get; set; }
 
         private Voxel[,] plane;
 
@@ -89,7 +92,7 @@ namespace Voxxy {
                 return false; // everything we would have encompassed was occluded.
             }
             var resultOcclusionPercent = (float)(OccludedCount + occludedCount) / (SolidCount + solidCount);
-            if(resultOcclusionPercent > 0.5f) {
+            if(resultOcclusionPercent > MaximumOcclusionPercent) {
                 return false; // too great a percentage of occluded children.
             }
             SolidCount += solidCount;
