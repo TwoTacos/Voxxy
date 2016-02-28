@@ -15,6 +15,9 @@ namespace Voxxy {
         [Tooltip("The VOX file (expored from Magica Voxel or similar) that will be imported into a Unity3d friendly mesh.")]
         public DefaultAsset voxFile;
 
+        [Tooltip("")]
+        public Vector3 center;
+
         public DateTime filedate; // TODO: Use this to automatically reload changed model.
 
         public string filedateString; // TODO: Remove.
@@ -193,10 +196,10 @@ namespace Voxxy {
                             vertices.Add(center + vertex2);
                             vertices.Add(center + vertex3);
 
-                            uvs.Add(new Vector2(0, 0));
-                            uvs.Add(new Vector2(1, 0));
-                            uvs.Add(new Vector2(1, 1));
                             uvs.Add(new Vector2(0, 1));
+                            uvs.Add(new Vector2(1, 1));
+                            uvs.Add(new Vector2(1, 0));
+                            uvs.Add(new Vector2(0, 0));
 
                             triangles.Add(index);
                             triangles.Add(index + 1);
