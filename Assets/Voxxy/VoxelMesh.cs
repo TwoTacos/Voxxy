@@ -17,7 +17,7 @@ namespace Voxxy {
 
         public string filedateString; // TODO: Remove.
 
-        [Tooltip("The percent of occluded voxels allowed on any given face.  Use 0% to only render visible surface.  Use 100% to extend faces as far as necessary to triangulate.")]
+        [Tooltip("The percent of occluded voxels allowed on any given face.  Use 0% to only render visible surface decreasing GPU overdraw.  Use 100% to extend faces as far as necessary to decrease triangles.")]
         [Range(0, 100)]
         public int maximumOcclusionPercent = 50;
 
@@ -80,23 +80,29 @@ namespace Voxxy {
             foreach(var coord in Coordinate.Solid(Coordinate.zero, vox.Size)) {
                 //AddFaceIfClear(model, coord, Coordinate.back);
                 //AddFaceIfClear(model, coord, Coordinate.forward);
-                AddFaceIfClear(model, coord, Coordinate.left);
+                //AddFaceIfClear(model, coord, Coordinate.left);
                 //AddFaceIfClear(model, coord, Coordinate.right);
-                AddFaceIfClear(model, coord, Coordinate.up);
-                AddFaceIfClear(model, coord, Coordinate.down);
+                //AddFaceIfClear(model, coord, Coordinate.up);
+                //AddFaceIfClear(model, coord, Coordinate.down);
             }
 
-            for(int z = 0; z < vox.Size.z; ++z) {
-                var min = new Coordinate(0, 0, z);
-                var max = new Coordinate(vox.Size.x, vox.Size.y, z);
-                AddFaces(model, min, max, Coordinate.back);
-                AddFaces(model, min, max, Coordinate.forward);
+            for(int x = 0; x < vox.Size.x; ++x) {
+                var min = new Coordinate(x, 0, 0);
+                var max = new Coordinate(x + 1, vox.Size.y, vox.Size.z);
+                AddFaces(model, min, max, Coordinate.right);
+                AddFaces(model, min, max, Coordinate.left);
             }
             for(int y = 0; y < vox.Size.y; ++y) {
                 var min = new Coordinate(0, y, 0);
-                var max = new Coordinate(vox.Size.x, y, vox.Size.z);
+                var max = new Coordinate(vox.Size.x, y + 1, vox.Size.z);
                 AddFaces(model, min, max, Coordinate.up);
                 AddFaces(model, min, max, Coordinate.down);
+            }
+            for(int z = 0; z < vox.Size.z; ++z) {
+                var min = new Coordinate(0, 0, z);
+                var max = new Coordinate(vox.Size.x, vox.Size.y, z + 1);
+                AddFaces(model, min, max, Coordinate.back);
+                AddFaces(model, min, max, Coordinate.forward);
             }
 
             Mesh mesh = new Mesh();
@@ -114,65 +120,82 @@ namespace Voxxy {
         List<Vector2> uvs;
         List<int> triangles;
 
-        private void AddFaces(VoxelModel model, Coordinate from, Coordinate to, Coordinate occludingCoord) {
+        private void AddFaces(VoxelModel model, Coordinate from, Coordinate to, Coordinate occludingDirection) {
+            var planeExtentX = from.x == to.x - 1 ? to.z : to.x;
+            var planeExtentY = from.y == to.y - 1 ? to.z : to.y;
+            var planeExtent = new Coordinate(planeExtentX, planeExtentY);
+
             // Copy plane slice out of model.
-            Voxel[,] plane = new Voxel[to.x, to.y];
-            for(short x = from.x; x < to.x; ++x) {
-                for(short y = from.y; y < to.y; ++y) {
-                    var coord = new Coordinate(x, y, to.z);
-                    var voxel = model[coord];
-                    var occluding = model[coord + occludingCoord];
-                    if(voxel.type == VoxelType.Visible && occluding.IsSolid) {
-                        plane[x, y] = Voxel.occluded;
-                    }
-                    else {
-                        plane[x, y] = voxel;
+            Voxel[,] plane = new Voxel[planeExtentX, planeExtentY];
+            for(var x = from.x; x < to.x; ++x) {
+                for(var y = from.y; y < to.y; ++y) {
+                    for(var z = from.z; z < to.z; ++z) {
+                        var coord = new Coordinate(x, y, z);
+                        var voxel = model[coord];
+                        var occluding = model[coord + occludingDirection];
+                        var planeX = from.x == to.x - 1 ? z : x;
+                        var planeY = from.y == to.y - 1 ? z : y;
+                        if(voxel.type == VoxelType.Visible && occluding.IsSolid) {
+                            plane[planeX, planeY] = Voxel.occluded;
+                        }
+                        else {
+                            plane[planeX, planeY] = voxel;
+                        }
                     }
                 }
             }
 
-            var angle = Quaternion.LookRotation(occludingCoord);
+            var angle = Quaternion.LookRotation(occludingDirection);
 
-            for(short x = from.x; x < to.x; ++x) {
-                for(short y = from.y; y < to.y; ++y) {
-                    if(plane[x, y].type == VoxelType.Visible) { 
-                        var face = new VoxelFace(plane, to, maximumOcclusionPercent / 100f);
-                        var coord = new Coordinate(x, y, from.z);
-                        face.Create(coord);
+            for(var x = from.x; x < to.x; ++x) {
+                for(var y = from.y; y < to.y; ++y) {
+                    for(var z = from.z; z < to.z; ++z) {
+                        var planeX = from.x == to.x - 1 ? z : x;
+                        var planeY = from.y == to.y - 1 ? z : y;
+                        if(plane[planeX, planeY].type == VoxelType.Visible) {
+                            var face = new VoxelFace(plane, planeExtent, maximumOcclusionPercent / 100f);
+                            face.Create(new Coordinate(planeX, planeY));
 
-                        while(face.Extend()) {
+                            while(face.Extend()) {
+                            }
+
+                            var index = vertices.Count;
+
+                            var xOffset = 0.5f * face.Bounds.size.x;
+                            var yOffset = 0.5f * face.Bounds.size.y;
+                            var zOffset = 0.5f * face.Bounds.size.z;
+                            var vertex0 = angle * new Vector3( xOffset,  yOffset, zOffset);
+                            var vertex1 = angle * new Vector3(-xOffset,  yOffset, zOffset);
+                            var vertex2 = angle * new Vector3(-xOffset, -yOffset, zOffset);
+                            var vertex3 = angle * new Vector3( xOffset, -yOffset, zOffset);
+
+                            var center = new Vector3(face.Bounds.center.x, face.Bounds.center.y, z);
+                            if(from.x == to.x - 1) {
+                                center = new Vector3(x, face.Bounds.center.y, face.Bounds.center.x);
+                            }
+                            if(from.y == to.y - 1) {
+                                center = new Vector3(face.Bounds.center.x, y, face.Bounds.center.y);
+                            }
+                            
+                            vertices.Add(center + vertex0);
+                            vertices.Add(center + vertex1);
+                            vertices.Add(center + vertex2);
+                            vertices.Add(center + vertex3);
+
+                            uvs.Add(new Vector2(0, 0));
+                            uvs.Add(new Vector2(1, 0));
+                            uvs.Add(new Vector2(1, 1));
+                            uvs.Add(new Vector2(0, 1));
+
+                            triangles.Add(index);
+                            triangles.Add(index + 1);
+                            triangles.Add(index + 2);
+                            triangles.Add(index);
+                            triangles.Add(index + 2);
+                            triangles.Add(index + 3);
+
+                            face.ClearPlane();
                         }
-
-                        var index = vertices.Count;
-
-                        var vertex0 = angle * new Vector3(0.5f, 0.5f, 0.5f);
-                        var vertex1 = angle * new Vector3(-0.5f, 0.5f, 0.5f);
-                        var vertex2 = angle * new Vector3(-0.5f, -0.5f, 0.5f);
-                        var vertex3 = angle * new Vector3(0.5f, -0.5f, 0.5f);
-
-                        vertex0.Scale(face.Bounds.size);
-                        vertex1.Scale(face.Bounds.size);
-                        vertex2.Scale(face.Bounds.size);
-                        vertex3.Scale(face.Bounds.size);
-
-                        vertices.Add(face.Bounds.center + vertex0);
-                        vertices.Add(face.Bounds.center + vertex1);
-                        vertices.Add(face.Bounds.center + vertex2);
-                        vertices.Add(face.Bounds.center + vertex3);
-
-                        uvs.Add(new Vector2(0, 0));
-                        uvs.Add(new Vector2(1, 0));
-                        uvs.Add(new Vector2(1, 1));
-                        uvs.Add(new Vector2(0, 1));
-
-                        triangles.Add(index);
-                        triangles.Add(index + 1);
-                        triangles.Add(index + 2);
-                        triangles.Add(index);
-                        triangles.Add(index + 2);
-                        triangles.Add(index + 3);
-
-                        face.ClearPlane();
                     }
                 }
             }

@@ -18,6 +18,15 @@ namespace Voxxy {
 
         public short z;
 
+        /// <summary>
+        /// For use when the coordinate is in two dimensions.
+        /// </summary>
+        public Coordinate(short x, short y) {
+            this.x = x;
+            this.y = y;
+            this.z = 0;
+        }
+        
         public Coordinate(short x, short y, short z) {
             this.x = x;
             this.y = y;
