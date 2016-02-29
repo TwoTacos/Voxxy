@@ -109,7 +109,9 @@ namespace Voxxy {
                 var g = reader.ReadByte() / 255.0f;
                 var b = reader.ReadByte() / 255.0f;
                 var a = reader.ReadByte() / 255.0f;
-                Palette[i] = new Color(r, g, b, a);
+                if(i < 255) {
+                    Palette[i + 1] = new Color(r, g, b, a);
+                }
             }
             if(chunkSize < 1024) {
                 Debug.Log("Possible file corruption, Palette chunk is larger than the expected contents.");
