@@ -19,8 +19,17 @@ namespace Voxxy {
 
         public Vector3 Size { get; private set; }
 
+        /// <summary>
+        /// The collection of voxels in the file.  
+        /// This is collection of unique Vector3 indicating the location along with their associated color index.
+        /// Use the color index as an offset into the Palette to determine the final color.
+        /// </summary>
         public Dictionary<Vector3, int> Voxels { get; private set; }
 
+        /// <summary>
+        /// The collection of 256 colors which is the palette for this model.
+        /// A VOX file has a limited palette.
+        /// </summary>
         public Color[] Palette { get; private set; }
 
         public int Version { get; private set; }

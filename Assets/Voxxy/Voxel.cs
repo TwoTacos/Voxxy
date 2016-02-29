@@ -2,18 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Voxxy {
     public struct Voxel {
 
-        public Voxel(VoxelType type, int color = 0) {
+        public Voxel(VoxelType type) : this(type, Color.black) {
+        }
+
+        public Voxel(VoxelType type, Color color) {
             this.type = type;
             this.color = color;
         }
 
-        public int color;
+        public readonly Color color;
 
-        public VoxelType type;
+        public readonly VoxelType type;
 
         /// <summary>
         /// A solid voxel is one that is visible or occluded.

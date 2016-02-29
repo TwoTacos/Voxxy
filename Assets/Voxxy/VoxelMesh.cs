@@ -31,6 +31,8 @@ namespace Voxxy {
 
         public GameObject CubePrefab;
 
+        public Texture2D atlas;
+
         private VoxFile vox;
 
         public void ImportVox() {
@@ -52,7 +54,8 @@ namespace Voxxy {
             model.Fill(Voxel.unknown);
             // Copy model into volume
             foreach(var voxel in vox.Voxels) {
-                model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, voxel.Value);
+                var color = vox.Palette[voxel.Value];
+                model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
             }
             model.Flood(Voxel.unknown, Voxel.empty);
             model.Replace(Voxel.unknown, Voxel.occluded);
@@ -81,12 +84,13 @@ namespace Voxxy {
             model.Fill(Voxel.unknown);
             // Copy model into volume
             foreach(var voxel in vox.Voxels) {
-                model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, voxel.Value);
+                var color = vox.Palette[voxel.Value];
+                model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
             }
             model.Flood(Voxel.unknown, Voxel.empty);
             model.Replace(Voxel.unknown, Voxel.occluded);
 
-            meshBuilder = new MeshBuilder();
+            meshBuilder = new MeshBuilder(voxFile.name + " VOX Model");
 
             for(int x = 0; x < vox.Size.x; ++x) {
                 var min = new Coordinate(x, 0, 0);
@@ -107,7 +111,9 @@ namespace Voxxy {
                 AddFaces(model, min, max, Coordinate.forward);
             }
 
-            gameObject.GetComponent<MeshFilter>().sharedMesh = meshBuilder.ToMesh(voxFile.name + " VOX Model");
+            gameObject.GetComponent<MeshFilter>().sharedMesh = meshBuilder.Mesh;
+            atlas = meshBuilder.Atlas;
+            gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", atlas);
 
             Debug.Log("Constructed mesh for vox model: " + voxFile.name);
         }
@@ -191,7 +197,8 @@ namespace Voxxy {
                             vertex2 = voxelSize * (centerOffset + faceCenter + vertex2);
                             vertex3 = voxelSize * (centerOffset + faceCenter + vertex3);
 
-                            meshBuilder.AddQuad(vertex0, vertex1, vertex2, vertex3);
+                            var texture = face.GetTexture();
+                            meshBuilder.AddQuad(vertex0, vertex1, vertex2, vertex3, texture);
 
                             face.ClearPlane();
                         }

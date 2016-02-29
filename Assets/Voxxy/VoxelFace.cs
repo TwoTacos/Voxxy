@@ -20,13 +20,19 @@ namespace Voxxy {
             Max = max;
         }
 
+        /// <summary>
+        /// Create, if possible, a new face starting at the given position.
+        /// </summary>
+        /// <returns>
+        /// True if a face could be created, false otherwise.
+        /// </returns>
         public bool Create(Coordinate start) {
             Start = start;
             End = Start + Coordinate.one;
             return plane[Start.x, Start.y].type == VoxelType.Visible;
         }
 
-        public float MaximumOcclusionPercent { get; set; }
+        private float MaximumOcclusionPercent { get; set; }
 
         private Voxel[,] plane;
 
@@ -56,6 +62,25 @@ namespace Voxxy {
             }
         }
 
+        /// <summary>
+        /// Given a face of the model, returns the image of all the 
+        /// </summary>
+        /// <returns></returns>
+        public Texture2D GetTexture() {
+            var bounds = Bounds;
+            var texture = new Texture2D((int)bounds.size.x, (int)bounds.size.y, TextureFormat.ARGB32, false);
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Point;
+            for(var x = Start.x; x < End.x; ++x) {
+                for(var y = Start.y; y < End.y; ++y) {
+                    var voxel = plane[x, y];
+                    texture.SetPixel(x - Start.x, y - Start.y, voxel.color);
+                }
+            }
+            texture.Apply();
+            return texture;
+        }
+
         public bool Extend() {
             return ExtendRight() | ExtendDown() | ExtendLeft() | ExtendUp();
         }
@@ -69,35 +94,6 @@ namespace Voxxy {
                 Start += Coordinate.left;
             }
             return success;
-        }
-
-        private bool GenericExtend(int startX, int endX, int startY, int endY) {
-            int solidCount = 0;
-            int occludedCount = 0;
-            for(int x = startX; x < endX; ++x) {
-                for(int y = startY; y < endY; ++y) {
-                    var voxel = plane[x, y];
-                    if(voxel.IsSolid) {
-                        ++solidCount;
-                        if(voxel.type == VoxelType.Occluded) {
-                            ++occludedCount;
-                        }
-                    }
-                    else {
-                        return false; // can't extend over non-solid voxel.
-                    }
-                }
-            }
-            if(occludedCount == solidCount) {
-                return false; // everything we would have encompassed was occluded.
-            }
-            var resultOcclusionPercent = (float)(OccludedCount + occludedCount) / (SolidCount + solidCount);
-            if(resultOcclusionPercent > MaximumOcclusionPercent) {
-                return false; // too great a percentage of occluded children.
-            }
-            SolidCount += solidCount;
-            OccludedCount += occludedCount;
-            return true;
         }
 
         private bool ExtendRight() {
@@ -140,5 +136,36 @@ namespace Voxxy {
                 }
             }
         }
+
+        private bool GenericExtend(int startX, int endX, int startY, int endY) {
+            int solidCount = 0;
+            int occludedCount = 0;
+            for(int x = startX; x < endX; ++x) {
+                for(int y = startY; y < endY; ++y) {
+                    var voxel = plane[x, y];
+                    if(voxel.IsSolid) {
+                        ++solidCount;
+                        if(voxel.type == VoxelType.Occluded) {
+                            ++occludedCount;
+                        }
+                    }
+                    else {
+                        return false; // can't extend over non-solid voxel.
+                    }
+                }
+            }
+            if(occludedCount == solidCount) {
+                return false; // everything we would have encompassed was occluded.
+            }
+            var resultOcclusionPercent = (float)(OccludedCount + occludedCount) / (SolidCount + solidCount);
+            if(resultOcclusionPercent > MaximumOcclusionPercent) {
+                return false; // too great a percentage of occluded children.
+            }
+            SolidCount += solidCount;
+            OccludedCount += occludedCount;
+            return true;
+        }
+
+
     }
 }
