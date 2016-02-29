@@ -86,9 +86,7 @@ namespace Voxxy {
             model.Flood(Voxel.unknown, Voxel.empty);
             model.Replace(Voxel.unknown, Voxel.occluded);
 
-            vertices = new List<Vector3>();
-            uvs = new List<Vector2>();
-            triangles = new List<int>();
+            meshBuilder = new MeshBuilder();
 
             for(int x = 0; x < vox.Size.x; ++x) {
                 var min = new Coordinate(x, 0, 0);
@@ -109,20 +107,13 @@ namespace Voxxy {
                 AddFaces(model, min, max, Coordinate.forward);
             }
 
-            Mesh mesh = new Mesh();
-            mesh.name = voxFile.name + "VOX Model";
-            mesh.vertices = vertices.ToArray();
-            mesh.triangles = triangles.ToArray();
-            mesh.uv = uvs.ToArray();
-            mesh.RecalculateNormals();
-            gameObject.GetComponent<MeshFilter>().sharedMesh = mesh;
+            gameObject.GetComponent<MeshFilter>().sharedMesh = meshBuilder.ToMesh(voxFile.name + " VOX Model");
 
             Debug.Log("Constructed mesh for vox model: " + voxFile.name);
         }
 
-        List<Vector3> vertices;
-        List<Vector2> uvs;
-        List<int> triangles;
+        private MeshBuilder meshBuilder;
+
 
         /// <summary>
         /// Vertices are mapped to position that would be correct for the 'forward' face (that is, +z direction).
@@ -179,8 +170,6 @@ namespace Voxxy {
                             while(face.Extend()) {
                             }
 
-                            var index = vertices.Count;
-
                             var xOffset = 0.5f * face.Bounds.size.x;
                             var yOffset = 0.5f * face.Bounds.size.y;
                             var zOffset = 0.5f * face.Bounds.size.z;
@@ -197,22 +186,12 @@ namespace Voxxy {
                                 faceCenter = new Vector3(face.Bounds.center.x, y, face.Bounds.center.y);
                             }
                             
-                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex0));
-                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex1));
-                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex2));
-                            vertices.Add(voxelSize * (centerOffset + faceCenter + vertex3));
+                            vertex0 = voxelSize * (centerOffset + faceCenter + vertex0);
+                            vertex1 = voxelSize * (centerOffset + faceCenter + vertex1);
+                            vertex2 = voxelSize * (centerOffset + faceCenter + vertex2);
+                            vertex3 = voxelSize * (centerOffset + faceCenter + vertex3);
 
-                            uvs.Add(new Vector2(0, 1));
-                            uvs.Add(new Vector2(1, 1));
-                            uvs.Add(new Vector2(1, 0));
-                            uvs.Add(new Vector2(0, 0));
-
-                            triangles.Add(index);
-                            triangles.Add(index + 1);
-                            triangles.Add(index + 2);
-                            triangles.Add(index);
-                            triangles.Add(index + 2);
-                            triangles.Add(index + 3);
+                            meshBuilder.AddQuad(vertex0, vertex1, vertex2, vertex3);
 
                             face.ClearPlane();
                         }
