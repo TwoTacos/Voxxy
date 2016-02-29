@@ -76,16 +76,15 @@ namespace Voxxy {
         private void CalculateUvs() {
             uvs.Clear();
 
-            var size = 256; // TODO: should this grow dynamically?
-            atlas = new Texture2D(size, size, TextureFormat.DXT1, false);
+            atlas = new Texture2D(2, 2, TextureFormat.ARGB32, true);
             atlas.wrapMode = TextureWrapMode.Clamp;
             atlas.filterMode = FilterMode.Point;
 
-            var rects = atlas.PackTextures(textures.ToArray(), 1, size);
+            var rects = atlas.PackTextures(textures.ToArray(), 1);
             for(int i = 0; i < textures.Count; ++i) {
                 var texture = textures[i];
                 var rect = rects[i];
-                var epsilon = 0.0005f; // slight adjustment to avoid the exact border of the texture.
+                var epsilon = 0f; // slight adjustment to avoid the exact border of the texture.
                 if(vertices[4 * i].y == vertices[4 * i + 1].y && vertices[4 * i].y == vertices[4 * i + 2].y) {
                     // top & bottom need to rotate 180
                     uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMin + epsilon));
