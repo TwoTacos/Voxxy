@@ -71,10 +71,16 @@ namespace Voxxy {
             var texture = new Texture2D((int)bounds.size.x, (int)bounds.size.y, TextureFormat.ARGB32, false);
             texture.wrapMode = TextureWrapMode.Clamp;
             texture.filterMode = FilterMode.Point;
+            var transparent = new Color(0, 0, 0, 0);
             for(var x = Start.x; x < End.x; ++x) {
                 for(var y = Start.y; y < End.y; ++y) {
                     var voxel = plane[x, y];
-                    texture.SetPixel(x - Start.x, y - Start.y, voxel.color);
+                    if(voxel.type == VoxelType.Occluded) {
+                        texture.SetPixel(x - Start.x, y - Start.y, transparent);
+                    }
+                    else {
+                        texture.SetPixel(x - Start.x, y - Start.y, voxel.color);
+                    }
                 }
             }
             texture.Apply();

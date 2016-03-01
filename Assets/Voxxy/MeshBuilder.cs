@@ -80,7 +80,7 @@ namespace Voxxy {
             atlas.wrapMode = TextureWrapMode.Clamp;
             atlas.filterMode = FilterMode.Point;
 
-            var rects = atlas.PackTextures(textures.ToArray(), 1);
+            var rects = atlas.PackTextures(textures.ToArray(), 2);
             for(int i = 0; i < textures.Count; ++i) {
                 var texture = textures[i];
                 var rect = rects[i];
@@ -99,11 +99,33 @@ namespace Voxxy {
                     uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMin + epsilon));
                 }
             }
+            // Inefficient, but seldom called...
+            int[] xSearch = { 1, -1, 0, 0, 1, -1, 1, -1 };
+            int[] ySearch = { 0, 0, 1, -1, 1, 1, -1, -1 };
+            var pixels = atlas.GetPixels();
+            var transparent = new Color(0, 0, 0, 0);
+            for(int x = 0; x < atlas.width; ++x) {
+                for(int y = 0; y < atlas.height; ++y) {
+                    var pixel = GetPixel(pixels, atlas.width, atlas.height, x, y);
+                    if(pixel == transparent) {
+                        for(int n = 0; n < xSearch.Length; ++n) {
+                            var neighbor = GetPixel(pixels, atlas.width, atlas.height, x + xSearch[n], y + ySearch[n]);
+                            if(neighbor != transparent) {
+                                atlas.SetPixel(x, y, neighbor);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            atlas.Apply();
 
-            //uvs.Add(new Vector2(0, 1));
-            //uvs.Add(new Vector2(1, 1));
-            //uvs.Add(new Vector2(1, 0));
-            //uvs.Add(new Vector2(0, 0));
+        }
+
+        private static Color GetPixel(Color[] pixels, int width, int height, int x, int y) {
+            x = Mathf.Clamp(x, 0, width - 1);
+            y = Mathf.Clamp(y, 0, height - 1);
+            return pixels[width * y + x];
         }
 
         private List<Vector3> vertices;
