@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace Voxxy {
 
+    [ExecuteInEditMode]
     [RequireComponent(typeof(MeshFilter))]
     [RequireComponent(typeof(MeshRenderer))]
     public class VoxelMesh : MonoBehaviour {
@@ -18,33 +19,85 @@ namespace Voxxy {
         [Tooltip("The center of the model as a propotion of each side.  Values below 0 and above 1 can be used to move the center outside of the model's volume.  The size of the model is determined by the VOX file and not by the area filled by voxels.")]
         public Vector3 center = new Vector3(0.5f, 0.5f, 0.5f);
 
+        // TODO: Change this to option of voxels/meter or meters/voxel.
         [Tooltip("The number of unity units (i.e. meters) that each voxel will occupy.")]
         public float voxelSize = 1.0f;
-
-        public DateTime filedate; // TODO: Use this to automatically reload changed model.
-
-        public string filedateString; // TODO: Remove.
 
         [Tooltip("The percent of occluded voxels allowed on any given face.  0% will only render visible surface decreasing GPU overdraw.  Use 100% to extend faces into the model to decrease triangles.  Default of 40% is good for most situations.")]
         [Range(0, 100)]
         public int maximumOcclusionPercent = 40;
 
-        public GameObject CubePrefab;
+        [HideInInspector]
+        [SerializeField]
+        private Vector3 lastCenter;
 
+        [HideInInspector]
+        [SerializeField]
+        private float lastVoxelSize;
+
+        [HideInInspector]
+        [SerializeField]
+        private int lastMaxPercent;
+
+        [HideInInspector]
+        public DateTime filedate; 
+
+        private string filedateString; // TODO: Remove.
+
+        [HideInInspector]
         public Texture2D atlas;
 
         private VoxFile vox;
 
-        public void ImportVox() {
-            var filepath = AssetDatabase.GetAssetPath(voxFile);
-            vox = new VoxFile();
-            var file = new FileInfo(filepath);
-            filedate = file.LastWriteTimeUtc;
-            filedateString = filedate.ToString();
-            vox.Open(filepath);
+        /// <summary>
+        /// This method, along with the ExecuteInEditMode class attribute re-imports the model when Unity starts up or the model is enabled.
+        /// This ensures that any changes to the VOX file when Unity was not running is automatically reflected in the model.
+        /// </summary>
+        internal void OnEnable() {
+            ReimportVox();
         }
 
-        [ContextMenu("Construct Cubes")]
+        /// <summary>
+        /// This method, along with the ExecuteInEditMode class attribute re-imports the model whenever any of the import attributes above is changed.
+        /// </summary>
+        internal void Update() {
+            ReimportVox();
+        }
+
+        [ContextMenu("Reimport")]
+        public void ReimportVox() {
+            if(voxFile == null) {
+                ClearModel();
+                return;
+            }
+
+            var filepath = AssetDatabase.GetAssetPath(voxFile);
+            var file = new FileInfo(filepath);
+            
+            if(filedate != file.LastWriteTimeUtc || center != lastCenter || voxelSize != lastVoxelSize || maximumOcclusionPercent != lastMaxPercent) {
+                filedate = file.LastWriteTimeUtc;
+                lastCenter = center;
+                lastVoxelSize = voxelSize;
+                lastMaxPercent = maximumOcclusionPercent;
+                filedateString = filedate.ToString();
+
+                vox = new VoxFile();
+                vox.Open(filepath);
+                ConstructMesh();
+            }
+        }
+
+        private void ClearModel() {
+            gameObject.GetComponent<MeshFilter>().sharedMesh = null;
+            gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", null);
+            filedate = DateTime.MinValue;
+        }
+
+        // TODO: Create another components, such as "VoxelPrefabs" that generates many prefabs arranged as VOX file?
+        [HideInInspector]
+        public GameObject CubePrefab;
+
+        //[ContextMenu("Construct Cubes")]
         public void ConstructCubes() {
             var model = new VoxelModel(vox.Size);
 
@@ -72,10 +125,7 @@ namespace Voxxy {
             Debug.Log(String.Format("Created {0} voxels from {1}.", count, voxFile.name));
         }
 
-        [ContextMenu("Construct Mesh")]
         public void ConstructMesh() {
-            ImportVox();
-
             var model = new VoxelModel(vox.Size);
 
             model.Fill(Voxel.unknown);

@@ -60,6 +60,27 @@ namespace Voxxy {
             this.z = (short)source.z;
         }
 
+        public override bool Equals(object obj) {
+            if(obj is Coordinate) {
+                return this == (Coordinate)obj;
+            }
+            else {
+                return false;
+            }
+        }
+
+        public override int GetHashCode() {
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
+        }
+
+        public static bool operator== (Coordinate lhs, Coordinate rhs) {
+            return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+        }
+
+        public static bool operator !=(Coordinate lhs, Coordinate rhs) {
+            return !(lhs == rhs);
+        }
+
         /// <summary>
         /// Allows conversion from Vector3 to Coordinate without a cast.
         /// Although precision is lost this is still implicit as Coordinate is a special case of a Vector3, not specifically a less-precise version.
@@ -171,13 +192,10 @@ namespace Voxxy {
             return new Bounds(center, size);
         }
 
-        /// <summary>
-        /// Returns the coordinate with all values set to 0.
-        /// </summary>
         public readonly static Coordinate zero = new Coordinate(0, 0, 0);
 
         /// <summary>
-        /// Returns the coordinate with all values set to 1.
+        /// Shorthand for writing Coordinate(1, 1, 1).
         /// </summary>
         public readonly static Coordinate one = new Coordinate(1, 1, 1);
 

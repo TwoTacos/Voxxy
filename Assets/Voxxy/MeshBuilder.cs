@@ -95,7 +95,6 @@ namespace Voxxy {
 
             var rects = atlas.PackTextures(textures.ToArray(), 2);
             for(int i = 0; i < textures.Count; ++i) {
-                var texture = textures[i];
                 var rect = rects[i];
                 var epsilon = 0f; // slight adjustment to avoid the exact border of the texture.
                 if(IsQuadHorizontal(i)) {

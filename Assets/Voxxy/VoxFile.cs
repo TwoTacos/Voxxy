@@ -36,8 +36,8 @@ namespace Voxxy {
 
         public void Open(string path) {
             byte[] bytes = File.ReadAllBytes(path);
-            using(MemoryStream ms = new MemoryStream(bytes)) {
-                using(BinaryReader reader = new BinaryReader(ms)) {
+            using(MemoryStream stream = new MemoryStream(bytes)) {
+                using(BinaryReader reader = new BinaryReader(stream)) {
                     var header = Encoding.ASCII.GetString(reader.ReadBytes(4));
                     if(header != "VOX ") {
                         throw new FormatException("Invalid VOX file, 'VOX' header not found.");
