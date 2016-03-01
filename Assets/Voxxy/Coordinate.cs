@@ -12,10 +12,19 @@ namespace Voxxy {
     /// </summary>
     public struct Coordinate {
 
+        /// <summary>
+        /// X component of the Coordinate.
+        /// </summary>
         public short x;
 
+        /// <summary>
+        /// Y component of the Coordinate.
+        /// </summary>
         public short y;
 
+        /// <summary>
+        /// Z component of the Coordinate.
+        /// </summary>
         public short z;
 
         /// <summary>
@@ -27,6 +36,9 @@ namespace Voxxy {
             this.z = 0;
         }
         
+        /// <summary>
+        /// Creates a new Coordinate with given x, y and z components.
+        /// </summary>
         public Coordinate(short x, short y, short z) {
             this.x = x;
             this.y = y;
@@ -34,7 +46,8 @@ namespace Voxxy {
         }
 
         /// <summary>
-        /// Constructs a coordinate from the indicated integer parameters, no check is done for overflow on short conversion.
+        /// Creates a new Coordinate with given x, y and z components.
+        /// No check is done for overflow on int to short conversion.
         /// </summary>
         public Coordinate(int x, int y, int z) {
             this.x = (short)x;
@@ -43,7 +56,8 @@ namespace Voxxy {
         }
 
         /// <summary>
-        /// Constructs a coordinate from the indicated float parameters with truncation, no check is done for overflow on short conversion.
+        /// Creates a new Coordinate with given x, y and z components.
+        /// No check is done for overflow on float to short conversion.
         /// </summary>
         public Coordinate(float x, float y, float z) {
             this.x = (short)x;
@@ -52,7 +66,8 @@ namespace Voxxy {
         }
 
         /// <summary>
-        /// Constructs a coordinate from the indicated Vector3 parameter with truncation, no check is done for overflow on short conversion.
+        /// Creates a new Coordinate with given x, y and z components.
+        /// No check is done for overflow on Vector3 components to short conversion.
         /// </summary>
         public Coordinate(Vector3 source) {
             this.x = (short)source.x;
@@ -73,10 +88,16 @@ namespace Voxxy {
             return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
         }
 
+        /// <summary>
+        /// Checks equality with a pair-wise evaluation of components.
+        /// </summary>
         public static bool operator== (Coordinate lhs, Coordinate rhs) {
             return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
         }
 
+        /// <summary>
+        /// Checks inequality with a pair-wise evaluation of components.
+        /// </summary>
         public static bool operator !=(Coordinate lhs, Coordinate rhs) {
             return !(lhs == rhs);
         }
@@ -192,6 +213,9 @@ namespace Voxxy {
             return new Bounds(center, size);
         }
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(0, 0, 0).
+        /// </summary>
         public readonly static Coordinate zero = new Coordinate(0, 0, 0);
 
         /// <summary>
@@ -199,18 +223,39 @@ namespace Voxxy {
         /// </summary>
         public readonly static Coordinate one = new Coordinate(1, 1, 1);
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(0, 0, 1).
+        /// </summary>
         public readonly static Coordinate forward = new Coordinate(0, 0, 1);
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(0, 0, -1).
+        /// </summary>
         public readonly static Coordinate back = new Coordinate(0, 0, -1);
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(-1, 0, 0).
+        /// </summary>
         public readonly static Coordinate left = new Coordinate(-1, 0, 0);
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(1, 0, 0).
+        /// </summary>
         public readonly static Coordinate right = new Coordinate(1, 0, 0);
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(0, 1, 0).
+        /// </summary>
         public readonly static Coordinate up = new Coordinate(0, 1, 0);
 
+        /// <summary>
+        /// Shorthand for writing Coordinate(0, -1, 0).
+        /// </summary>
         public readonly static Coordinate down = new Coordinate(0, -1, 0);
 
+        /// <summary>
+        /// Converts the coordinate to a string of the format C(x, y, z).
+        /// </summary>
         public override string ToString() {
             return String.Format("C({0}, {1}, {2})", x, y, z);
         }
