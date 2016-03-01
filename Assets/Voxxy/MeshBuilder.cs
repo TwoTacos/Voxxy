@@ -61,6 +61,19 @@ namespace Voxxy {
                 return atlas;
             }
         }
+
+        public int VertexCount {
+            get {
+                return vertices.Count;
+            }
+        }
+
+        public int TriangleCount {
+            get {
+                return triangles.Count / 3;
+            }
+        }
+
         private Texture2D atlas = null;
 
         private void CalculateMesh() {

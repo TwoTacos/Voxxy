@@ -36,9 +36,6 @@ namespace Voxxy {
         private VoxFile vox;
 
         public void ImportVox() {
-            Debug.Log("Name: " + voxFile.name);
-            Debug.Log("ToString: " + voxFile.ToString());
-            Debug.Log("pathToVox: " + AssetDatabase.GetAssetPath(voxFile));
             var filepath = AssetDatabase.GetAssetPath(voxFile);
             vox = new VoxFile();
             var file = new FileInfo(filepath);
@@ -115,7 +112,7 @@ namespace Voxxy {
             atlas = meshBuilder.Atlas;
             gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", atlas);
 
-            Debug.Log("Constructed mesh for vox model: " + voxFile.name);
+            Debug.Log(String.Format("Voxxy constructed mesh for VOX model {0} with {1} vertices and {2} triangles. ", voxFile.name, meshBuilder.VertexCount, meshBuilder.TriangleCount));
         }
 
         private MeshBuilder meshBuilder;
