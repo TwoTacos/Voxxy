@@ -98,7 +98,7 @@ namespace Voxxy {
                 var texture = textures[i];
                 var rect = rects[i];
                 var epsilon = 0f; // slight adjustment to avoid the exact border of the texture.
-                if(vertices[4 * i].y == vertices[4 * i + 1].y && vertices[4 * i].y == vertices[4 * i + 2].y) {
+                if(IsQuadHorizontal(i)) {
                     // top & bottom need to rotate 180
                     uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMin + epsilon));
                     uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMin + epsilon));
@@ -133,6 +133,15 @@ namespace Voxxy {
             }
             atlas.Apply();
 
+        }
+
+        private bool IsQuadHorizontal(int i) {
+            var y1 = vertices[4 * i].y;
+            var y2 = vertices[4 * i + 1].y;
+            var y3 = vertices[4 * i + 2].y;
+            var y4 = vertices[4 * i + 3].y;
+            var delta = Mathf.Abs(y1 - y2) + Mathf.Abs(y1 - y3) + Mathf.Abs(y1 - y4);
+            return delta < 0.01;
         }
 
         private static Color GetPixel(Color[] pixels, int width, int height, int x, int y) {
