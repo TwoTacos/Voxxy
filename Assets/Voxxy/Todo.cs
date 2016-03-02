@@ -5,9 +5,13 @@ using System.Text;
 
 namespace Voxxy {
 
-    // TODO: Fix flood fill at beginning, breaks on castle.
+    // TODO: Check colors on castle, is there no defined palette?  Perhaps need to create default palette.
 
-    // TODO: Move away from menus and put an Apply button on the form. - model after model import screen. ???
+    // TODO: Create custom material for model, don't change shared Material others may be using.
+
+    // TODO: Re-use textures if they've been used already.
+
+    // TODO: Fix alignment at 0, should actually subtract half a voxel.  Make sure other dimensions are good.
 
     // TODO: Add readme to the voxxy directory with information on how to get started.
 

@@ -180,13 +180,13 @@ namespace Voxxy {
         /// <summary>
         /// Returns the absolute coordinates for all of the neighbors that share a face with this coordinate, of which there are six.
         /// </summary>
-        public static IEnumerable<Coordinate> VonNeumanNeighborhood(Coordinate center) {
-            yield return center + Coordinate.forward;
-            yield return center + Coordinate.back;
-            yield return center + Coordinate.left;
-            yield return center + Coordinate.right;
-            yield return center + Coordinate.up;
-            yield return center + Coordinate.down;
+        public IEnumerable<Coordinate> VonNeumanNeighbors() {
+            yield return this + Coordinate.forward;
+            yield return this + Coordinate.back;
+            yield return this + Coordinate.left;
+            yield return this + Coordinate.right;
+            yield return this + Coordinate.up;
+            yield return this + Coordinate.down;
         }
 
         /// <summary>

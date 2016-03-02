@@ -43,45 +43,52 @@ namespace Voxxy {
             }
         }
 
+        /// <summary>
+        /// Indicates if the indicate coordinate is within the bounds of this model.
+        /// </summary>
+        /// <param name="coord"></param>
+        /// <returns></returns>
         public bool Contains(Coordinate coord) {
             return coord.x >= 0 && coord.y >= 0 && coord.z >= 0 && coord.x < Size.x && coord.y < Size.y && coord.z < Size.z;
         }
 
+        /// <summary>
+        /// Fills the entire model with the given voxel.
+        /// </summary>
         public void Fill(Voxel value) {
             foreach(var coord in Coordinate.Solid(Coordinate.zero, Size)) {
                 this[coord] = value;
             }
         }
 
-        public void Flood(Voxel fromVoxel, Voxel toVoxel) {
-            var start = Coordinate.zero;
-            Coordinate end = Size;
-            // Mark as empty items on the periphery that aren't colored.
-            foreach(var coord in Coordinate.Shell(start, end)) {
-                if(this[coord] == fromVoxel) {
-                    this[coord] = toVoxel;
-                }
-            }
-            // Progressively move inward marking NoInformation as Empty if they have an empty neighbor.
-            do {
-                start = start + Coordinate.one;
-                end = end - Coordinate.one;
-                foreach(var coord in Coordinate.Shell(start, end)) {
-                    if(this[coord] == fromVoxel) {
-                        foreach(var neighbor in Coordinate.VonNeumanNeighborhood(coord)) {
-                            if(this[neighbor] == toVoxel) {
-                                this[coord] = toVoxel;
-                            }
-                        }
+        /// <summary>
+        /// Flood fill the model changing all voxels that are connected of the source type and replacing with the target type.
+        /// This starts at the start coordinate and extends until no more are found. 
+        /// If the start coordinate does not match the source voxel, then no changes are made.
+        /// </summary>
+        public void Flood(Coordinate start, Voxel source, Voxel target) {
+            var toVisit = new Queue<Coordinate>();
+            toVisit.Enqueue(start);
+            while(toVisit.Any()) {
+                var coord = toVisit.Dequeue();
+                var voxel = this[coord];
+                if(voxel == source) {
+                    this[coord] = target;
+                    var neighbors = coord.VonNeumanNeighbors().Where(e => this.Contains(e));
+                    foreach(var neighbor in neighbors) {
+                        toVisit.Enqueue(neighbor);
                     }
                 }
-            } while(start.x < end.x && start.y < end.y && start.z < end.z);
+            }
         }
 
-        internal void Replace(Voxel fromVoxel, Voxel toVoxel) {
+        /// <summary>
+        /// Replace the voxel of the specified type and color with another everywhere in the model.
+        /// </summary>
+        public void Replace(Voxel source, Voxel target) {
             foreach(var coord in Coordinate.Solid(Coordinate.zero, Size)) {
-                if(this[coord] == fromVoxel) {
-                    this[coord] = toVoxel;
+                if(this[coord] == source) {
+                    this[coord] = target;
                 }
             }
         }

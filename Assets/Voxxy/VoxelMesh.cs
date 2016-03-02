@@ -107,7 +107,9 @@ namespace Voxxy {
                 var color = vox.Palette[voxel.Value];
                 model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
             }
-            model.Flood(Voxel.unknown, Voxel.empty);
+            foreach(var coord in Coordinate.Shell(Coordinate.zero, vox.Size)) {
+                model.Flood(coord, Voxel.unknown, Voxel.empty);
+            }
             model.Replace(Voxel.unknown, Voxel.occluded);
             // Finally, render them.
             int count = 0;
@@ -134,7 +136,9 @@ namespace Voxxy {
                 var color = vox.Palette[voxel.Value];
                 model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
             }
-            model.Flood(Voxel.unknown, Voxel.empty);
+            foreach(var coord in Coordinate.Shell(Coordinate.zero, vox.Size)) {
+                model.Flood(coord, Voxel.unknown, Voxel.empty);
+            }
             model.Replace(Voxel.unknown, Voxel.occluded);
 
             meshBuilder = new MeshBuilder(voxFile.name + " VOX Model");
