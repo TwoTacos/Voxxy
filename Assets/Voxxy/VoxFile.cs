@@ -15,6 +15,7 @@ namespace Voxxy {
         public VoxFile() {
             Voxels = new Dictionary<Vector3, int>();
             Palette = new Color[256];
+            LoadDefaultPalette();
         }
 
         public Vector3 Size { get; private set; }
@@ -144,6 +145,39 @@ namespace Voxxy {
                 reader.ReadBytes(childrenSize);
             }
         }
+
+        /// <summary>
+        /// VOX files are allowed to not have a palette and then the default pallete is assumed.
+        /// </summary>
+        /// <remarks>
+        /// Colors from http://voxel.codeplex.com/SourceControl/latest#MV Importer/MV Importer/mv_vox.h
+        /// </remarks>
+        private void LoadDefaultPalette() {
+            int i = 0;
+            for(var r = 1.0f; r >= 0.0f; r -= 0.2f) {
+                for(var g = 1.0f; g >= 0.0f; g -= 0.2f) {
+                    for(var b = 1.0f; b >= 0.0f; b -= 0.2f) {
+                        Palette[i++] = new Color(r, g, b);
+                    }
+                }
+            }
+            --i;  // The last was black and we don't include it yet.
+            float[] wackyScale = { 0.933333f, 0.866667f, 0.733333f, 0.666667f, 0.533333f, 0.466667f, 0.333333f, 0.266667f, 0.133333f, 0.066667f };
+            foreach(var r in wackyScale) {
+                Palette[i++] = new Color(r, 0, 0);
+            }
+            foreach(var g in wackyScale) {
+                Palette[i++] = new Color(0, g, 0);
+            }
+            foreach(var b in wackyScale) {
+                Palette[i++] = new Color(0, 0, b);
+            }
+            foreach(var w in wackyScale) {
+                Palette[i++] = new Color(w, w, w);
+            }
+            Palette[i] = new Color(0, 0, 0);
+        }
+
     }
 
 }
