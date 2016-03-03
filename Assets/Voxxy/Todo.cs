@@ -5,11 +5,9 @@ using System.Text;
 
 namespace Voxxy {
 
-    // TODO: Check colors on castle, is there no defined palette?  Perhaps need to create default palette.
-
     // TODO: Create custom material for model, don't change shared Material others may be using.
 
-    // TODO: Re-use textures if they've been used already.
+    // TODO: Check colors on castle, is there no defined palette?  Perhaps need to create default palette.
 
     // TODO: Fix alignment at 0, should actually subtract half a voxel.  Make sure other dimensions are good.
 

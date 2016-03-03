@@ -17,6 +17,7 @@ namespace Voxxy {
             vertices = new List<Vector3>();
             uvs = new List<Vector2>();
             triangles = new List<int>();
+            textureIndexes = new List<int>();
             textures = new List<Texture2D>();
         }
 
@@ -38,7 +39,14 @@ namespace Voxxy {
             triangles.Add(index + 2);
             triangles.Add(index + 3);
 
-            textures.Add(texture);
+            var existingTextureIndex = MatchExistingTexture(texture);
+            if(existingTextureIndex >= 0) {
+                textureIndexes.Add(existingTextureIndex);
+            }
+            else {
+                textures.Add(texture);
+                textureIndexes.Add(textures.Count - 1);
+            }
         }
 
         public string Name { get; private set; }
@@ -94,23 +102,40 @@ namespace Voxxy {
             atlas.filterMode = FilterMode.Point;
 
             var rects = atlas.PackTextures(textures.ToArray(), 2);
-            for(int i = 0; i < textures.Count; ++i) {
-                var rect = rects[i];
-                var epsilon = 0f; // slight adjustment to avoid the exact border of the texture.
+            for(int i = 0; i < vertices.Count / 4; ++i) {
+                var textureIndex = textureIndexes[i];
+                var rect = rects[textureIndex];
                 if(IsQuadHorizontal(i)) {
                     // top & bottom need to rotate 180
-                    uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMin + epsilon));
-                    uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMin + epsilon));
-                    uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMax - epsilon));
-                    uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMax - epsilon));
+                    uvs.Add(new Vector2(rect.xMax, rect.yMin));
+                    uvs.Add(new Vector2(rect.xMin, rect.yMin));
+                    uvs.Add(new Vector2(rect.xMin, rect.yMax));
+                    uvs.Add(new Vector2(rect.xMax, rect.yMax));
                 }
                 else {
-                    uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMax - epsilon));
-                    uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMax - epsilon));
-                    uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMin + epsilon));
-                    uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMin + epsilon));
+                    uvs.Add(new Vector2(rect.xMin, rect.yMax));
+                    uvs.Add(new Vector2(rect.xMax, rect.yMax));
+                    uvs.Add(new Vector2(rect.xMax, rect.yMin));
+                    uvs.Add(new Vector2(rect.xMin, rect.yMin));
                 }
             }
+            //for(int i = 0; i < textures.Count; ++i) {
+            //    var rect = rects[i];
+            //    var epsilon = 0f; // slight adjustment to avoid the exact border of the texture.
+            //    if(IsQuadHorizontal(i)) {
+            //        // top & bottom need to rotate 180
+            //        uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMin + epsilon));
+            //        uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMin + epsilon));
+            //        uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMax - epsilon));
+            //        uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMax - epsilon));
+            //    }
+            //    else {
+            //        uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMax - epsilon));
+            //        uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMax - epsilon));
+            //        uvs.Add(new Vector2(rect.xMax - epsilon, rect.yMin + epsilon));
+            //        uvs.Add(new Vector2(rect.xMin + epsilon, rect.yMin + epsilon));
+            //    }
+            //}
             // Inefficient, but seldom called...
             int[] xSearch = { 1, -1, 0, 0, 1, -1, 1, -1 };
             int[] ySearch = { 0, 0, 1, -1, 1, 1, -1, -1 };
@@ -149,9 +174,33 @@ namespace Voxxy {
             return pixels[width * y + x];
         }
 
+        private int MatchExistingTexture(Texture2D texture) {
+            for(int i = 0; i < textures.Count; ++i) {
+                if(TextureEquals(texture, textures[i])) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private static bool TextureEquals(Texture2D lhs, Texture2D rhs) {
+            if(lhs.width == rhs.width && lhs.height == rhs.height) {
+                var lhp = lhs.GetPixels32();
+                var rhp = rhs.GetPixels32();
+                for(int i = 0; i < lhp.Length; ++i) {
+                    if(!lhp[i].Equals(rhp[i])) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
         private List<Vector3> vertices;
         private List<Vector2> uvs;
         private List<int> triangles;
+        private List<int> textureIndexes;
         private List<Texture2D> textures;
 
     }
