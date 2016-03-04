@@ -5,10 +5,6 @@ using System.Text;
 
 namespace Voxxy {
 
-    // TODO: Create custom material for model, don't change shared Material others may be using.
-
-    // TODO: Fix alignment at 0, should actually subtract half a voxel.  Make sure other dimensions are good.
-
     // TODO: Add readme to the voxxy directory with information on how to get started.
 
     // TODO: Update readme on Github with information (and images) on what it does and how effective it is.

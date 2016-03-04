@@ -84,9 +84,7 @@ namespace Voxxy {
             }
         }
 
-
-        [ContextMenu("Clear Material")]
-        public void ClearModel() {
+        private void ClearModel() {
             gameObject.GetComponent<MeshFilter>().sharedMesh = null;
             gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", null);
             filedate = DateTime.MinValue;
@@ -189,7 +187,7 @@ namespace Voxxy {
 
             var angle = Quaternion.LookRotation(occludingDirection);
 
-            var centerOffset = new Vector3(-(vox.Size.x - 1) * center.x, -(vox.Size.y - 1) * center.y, -(vox.Size.z - 1) * center.z);
+            var centerOffset = new Vector3(-(vox.Size.x - 1) * center.x + 0.5f, -(vox.Size.y) * center.y + 0.5f, -(vox.Size.z - 1) * center.z + 0.5f);
 
             for(var x = from.x; x < to.x; ++x) {
                 for(var y = from.y; y < to.y; ++y) {
