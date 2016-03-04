@@ -42,8 +42,6 @@ namespace Voxxy {
         [HideInInspector]
         public DateTime filedate; 
 
-        private string filedateString; // TODO: Remove.
-
         [HideInInspector]
         public Texture2D atlas;
 
@@ -79,7 +77,6 @@ namespace Voxxy {
                 lastCenter = center;
                 lastVoxelSize = voxelSize;
                 lastMaxPercent = maximumOcclusionPercent;
-                filedateString = filedate.ToString();
 
                 vox = new VoxFile();
                 vox.Open(filepath);
@@ -87,44 +84,12 @@ namespace Voxxy {
             }
         }
 
-        private void ClearModel() {
+
+        [ContextMenu("Clear Material")]
+        public void ClearModel() {
             gameObject.GetComponent<MeshFilter>().sharedMesh = null;
             gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", null);
             filedate = DateTime.MinValue;
-        }
-
-        // TODO: Create another components, such as "VoxelPrefabs" that generates many prefabs arranged as VOX file?
-        [HideInInspector]
-        public GameObject CubePrefab;
-
-        //[ContextMenu("Construct Cubes")]
-        public void ConstructCubes() {
-            var model = new VoxelModel(vox.Size);
-
-            model.Fill(Voxel.unknown);
-            // Copy model into volume
-            foreach(var voxel in vox.Voxels) {
-                var color = vox.Palette[voxel.Value];
-                model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
-            }
-            foreach(var coord in Coordinate.Shell(Coordinate.zero, vox.Size)) {
-                model.Flood(coord, Voxel.unknown, Voxel.empty);
-            }
-            model.Replace(Voxel.unknown, Voxel.occluded);
-            // Finally, render them.
-            int count = 0;
-            foreach(var coord in Coordinate.Solid(Coordinate.zero, vox.Size)) {
-                var voxel = model[coord];
-                if(voxel != Voxel.empty && voxel != Voxel.occluded) {
-                    ++count; 
-                    var go = Instantiate(CubePrefab, coord, Quaternion.identity) as GameObject;
-                    go.transform.SetParent(transform);
-                }
-                if(count > 1000) {
-                    break;
-                }
-            }
-            Debug.Log(String.Format("Created {0} voxels from {1}.", count, voxFile.name));
         }
 
         public void ConstructMesh() {
@@ -162,11 +127,22 @@ namespace Voxxy {
                 AddFaces(model, min, max, Coordinate.forward);
             }
 
-            gameObject.GetComponent<MeshFilter>().sharedMesh = meshBuilder.Mesh;
-            atlas = meshBuilder.Atlas;
-            gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", atlas);
+            UpdateMaterialAndTexture();
 
             Debug.Log(String.Format("Voxxy constructed mesh for VOX model {0} with {1} vertices and {2} triangles. ", voxFile.name, meshBuilder.VertexCount, meshBuilder.TriangleCount));
+        }
+
+        private void UpdateMaterialAndTexture() {
+            gameObject.GetComponent<MeshFilter>().sharedMesh = meshBuilder.Mesh;
+            atlas = meshBuilder.Atlas;
+            var renderer = gameObject.GetComponent<MeshRenderer>();
+            var materialName = voxFile.name + " Material";
+            if(materialName != renderer.sharedMaterial.name) {
+                var material = new Material(Shader.Find("Standard"));
+                material.name = materialName;
+                renderer.sharedMaterial = material;
+            }
+            renderer.sharedMaterial.SetTexture("_MainTex", atlas);
         }
 
         private MeshBuilder meshBuilder;
