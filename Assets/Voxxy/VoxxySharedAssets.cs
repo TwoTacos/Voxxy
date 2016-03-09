@@ -230,7 +230,8 @@ namespace Voxxy {
                             vertex2 = Settings.ScaleFactor * (centerOffset + faceCenter + vertex2);
                             vertex3 = Settings.ScaleFactor * (centerOffset + faceCenter + vertex3);
 
-                            var texture = face.GetTexture();
+                            // Switch texture for specific direction since we go through the block the same way for each and need to flip.
+                            var texture = face.GetTexture(occludingDirection == Coordinate.forward || occludingDirection == Coordinate.left, occludingDirection == Coordinate.down);
                             meshBuilder.AddQuad(vertex0, vertex1, vertex2, vertex3, texture);
 
                             if(meshBuilder.VertexCount > 65000) {

@@ -66,7 +66,7 @@ namespace Voxxy {
         /// Given a face of the model, returns the image of all the 
         /// </summary>
         /// <returns></returns>
-        public Texture2D GetTexture() {
+        public Texture2D GetTexture(bool inverseX, bool inverseY) {
             var bounds = Bounds;
             var texture = new Texture2D((int)bounds.size.x, (int)bounds.size.y, TextureFormat.ARGB32, false);
             texture.wrapMode = TextureWrapMode.Clamp;
@@ -74,7 +74,9 @@ namespace Voxxy {
             var transparent = new Color(0, 0, 0, 0);
             for(var x = Start.x; x < End.x; ++x) {
                 for(var y = Start.y; y < End.y; ++y) {
-                    var voxel = plane[x, y];
+                    var pixelX = inverseX ? End.x + Start.x - x - 1 : x;
+                    var pixelY = inverseY ? End.y + Start.y - y - 1 : y;
+                    var voxel = plane[pixelX, pixelY];
                     if(voxel.type == VoxelType.Occluded) {
                         texture.SetPixel(x - Start.x, y - Start.y, transparent);
                     }
