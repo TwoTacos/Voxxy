@@ -281,16 +281,31 @@ namespace Voxxy {
         }
 
         private Texture2D AddOrUpdateTexture(string assetPath) {
+            var pngPath = assetPath.Replace(".asset", ".png");
+
+            var pngFileInfo = new FileInfo(pngPath);
+            var alreadyExists = pngFileInfo.Exists;
+
             var newAtlas = meshBuilder.Atlas;
-            var existingAtlas = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
-            if(existingAtlas == null) {
-                AssetDatabase.AddObjectToAsset(newAtlas, assetPath);
-                existingAtlas = newAtlas;
-            }
-            else {
-                existingAtlas.LoadRawTextureData(newAtlas.GetRawTextureData());
+            var atlasPng = newAtlas.EncodeToPNG();
+            File.WriteAllBytes(pngPath, atlasPng);
+
+            AssetDatabase.ImportAsset(pngPath);
+
+            if(!alreadyExists) {
+                // default import settings suitable for voxel models.
+                var importer = AssetImporter.GetAtPath(pngPath) as TextureImporter;
+                importer.textureType = TextureImporterType.Image;
+                importer.alphaIsTransparency = false;
+                importer.grayscaleToAlpha = false;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.filterMode = FilterMode.Point;
+                importer.maxTextureSize = Mathf.Max(newAtlas.width, newAtlas.height);
+                importer.textureFormat = TextureImporterFormat.ARGB32;
+                AssetDatabase.ImportAsset(pngPath);
             }
 
+            var existingAtlas = AssetDatabase.LoadAssetAtPath<Texture2D>(pngPath);
             return existingAtlas;
         }
 
@@ -308,7 +323,7 @@ namespace Voxxy {
         private void AddOrUpdateSettings(string assetPath) {
             var existingSettings = AssetDatabase.LoadAssetAtPath<VoxImportSettings>(assetPath);
             if(existingSettings == null) {
-                AssetDatabase.AddObjectToAsset(Settings, assetPath);
+                //AssetDatabase.AddObjectToAsset(Settings, assetPath);
             }
             else {
                 // Do nothing, we are already editing the live asset version.
