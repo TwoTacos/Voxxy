@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,106 +9,56 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Voxxy {
+    public class VoxImporter : ScriptableObject {
 
-    /// <summary>
-    /// Responsible for converting the VOX file into a set of shared assets in the project.
-    /// </summary>
-    public class VoxxySharedAssets {
+        public string VoxAssetPath;
 
-        private VoxxySharedAssets() {
+        public float ScaleFactor = 0.125f;
+        public float LastScaleFactor = 0f;
 
+        public Vector3 Center = new Vector3(0.5f, 0.5f, 0.5f);
+        public Vector3 LastCenter = new Vector3(0.5f, 0.5f, 0.5f);
+
+        public int MaxPercent = 40;
+        public int LastMaxPercent = 0;
+
+        public bool Success;
+        public string Message;
+
+        public DateTime FileDate;
+
+        public bool HaveChanged(FileInfo file) {
+            return FileDate != file.LastWriteTimeUtc || HaveImportSettingsChanged();
+            
         }
 
-        public static VoxxySharedAssets GetAssetsForModel(DefaultAsset voxAsset) {
-            if(voxAsset == null) {
-                return null;
-            }
-            var filepath = AssetDatabase.GetAssetPath(voxAsset);
-            if(!sharedAssets.ContainsKey(filepath)) {
-                if(filepath == null) {
-                    Debug.LogWarning("Could not find VOX asset: " + voxAsset.name);
-                    return null;
-                }
-                var file = new FileInfo(filepath);
-                if(!file.Exists) {
-                    Debug.LogWarning("Could not find VOX file: " + file.FullName);
-                    return null;
-                }
-                if(file.Extension.ToLowerInvariant() != ".vox") {
-                    Debug.LogWarning("VOX files must end in 'vox' extension" + file.FullName);
-                    return null;
-                }
-
-                var newAssets = new VoxxySharedAssets();
-                newAssets.Load(voxAsset);
-                sharedAssets.Add(filepath, newAssets);
-            }
-            return sharedAssets[filepath];
-        }
-        
-        internal static void RemoveDeletedAssets(string[] deletedAssets) {
-            foreach(var asset in deletedAssets) {
-                if(sharedAssets.ContainsKey(asset)) {
-                    sharedAssets.Remove(asset);
-                }
-            }
+        public bool HaveImportSettingsChanged() {
+            return Center != LastCenter || ScaleFactor != LastScaleFactor || MaxPercent != LastMaxPercent;
         }
 
-        private static Dictionary<string, VoxxySharedAssets> sharedAssets = new Dictionary<string, VoxxySharedAssets>();
-
-        public VoxImportSettings Settings { get; private set; }
-
-        private void Load(DefaultAsset voxAsset) {
-            filepath = AssetDatabase.GetAssetPath(voxAsset);
-            var assetPath = filepath.Replace(".vox", ".asset");
-            Settings = AssetDatabase.LoadAssetAtPath<VoxImportSettings>(assetPath);
-            if(Settings == null) {
-                // First time, need to create.  Wait for end of mesh construction to save.
-                Settings = ScriptableObject.CreateInstance<VoxImportSettings>();
-                Settings.VoxAsset = voxAsset;
-            }
-            Reimport();
+        public void Revert() {
+            Center = LastCenter;
+            ScaleFactor = LastScaleFactor;
+            MaxPercent = LastMaxPercent;
         }
-
-        public string filepath;
-        public DateTime filedate;
 
         private VoxFile vox;
 
         public void Reimport() {
-            if(Settings.VoxAsset == null) {
-                ClearModel();
-                return;
-            }
+            var file = new FileInfo(VoxAssetPath);
 
-            var file = new FileInfo(filepath);
+            FileDate = file.LastWriteTimeUtc;
+            LastCenter = Center;
+            LastScaleFactor = ScaleFactor;
+            LastMaxPercent = MaxPercent;
 
-            Settings.FileDate = file.LastWriteTimeUtc;
-            Settings.LastCenter = Settings.Center;
-            Settings.LastScaleFactor = Settings.ScaleFactor;
-            Settings.LastMaxPercent = Settings.MaxPercent;
+            textureGuid = null;
+            meshGuid = null;
+            materialGuid = null;
 
             vox = new VoxFile();
-            vox.Open(filepath);
+            vox.Open(VoxAssetPath);
             ConstructMesh();
-        }
-
-        public void Refresh() {
-            if(Settings.VoxAsset == null) {
-                ClearModel();
-                return;
-            }
-
-            var filepath = AssetDatabase.GetAssetPath(Settings.VoxAsset);
-            var file = new FileInfo(filepath);
-
-            if(Settings.HaveChanged(file)) {
-                Reimport();
-            }
-        }
-
-        private void ClearModel() {
-            filedate = DateTime.MinValue;
         }
 
         public void ConstructMesh() {
@@ -124,32 +76,33 @@ namespace Voxxy {
             }
             model.Replace(Voxel.unknown, Voxel.occluded);
 
-            meshBuilder = new MeshBuilder(Settings.VoxAsset.name + " VOX Model");
+            var voxAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(VoxAssetPath);
+            meshBuilder = new MeshBuilder(voxAsset.name + " VOX Model");
 
-            Settings.Success = true;
+            Success = true;
 
-            for(int x = 0; x < vox.Size.x && Settings.Success == true; ++x) {
+            for(int x = 0; x < vox.Size.x && Success == true; ++x) {
                 var min = new Coordinate(x, 0, 0);
                 var max = new Coordinate(x + 1, vox.Size.y, vox.Size.z);
                 AddFaces(model, min, max, Coordinate.right);
                 AddFaces(model, min, max, Coordinate.left);
             }
-            for(int y = 0; y < vox.Size.y && Settings.Success == true; ++y) {
+            for(int y = 0; y < vox.Size.y && Success == true; ++y) {
                 var min = new Coordinate(0, y, 0);
                 var max = new Coordinate(vox.Size.x, y + 1, vox.Size.z);
                 AddFaces(model, min, max, Coordinate.up);
                 AddFaces(model, min, max, Coordinate.down);
             }
-            for(int z = 0; z < vox.Size.z && Settings.Success == true; ++z) {
+            for(int z = 0; z < vox.Size.z && Success == true; ++z) {
                 var min = new Coordinate(0, 0, z);
                 var max = new Coordinate(vox.Size.x, vox.Size.y, z + 1);
                 AddFaces(model, min, max, Coordinate.back);
                 AddFaces(model, min, max, Coordinate.forward);
             }
 
-            if(Settings.Success == true) {
+            if(Success == true) {
                 UpdateMaterialAndTexture();
-                Settings.Message = String.Format("Voxxy model {0}: {1} vertices, {2} triangles. ", Settings.VoxAsset.name, meshBuilder.VertexCount, meshBuilder.TriangleCount);
+                Message = String.Format("Voxxy model {0}: {1} vertices, {2} triangles. ", voxAsset.name, meshBuilder.VertexCount, meshBuilder.TriangleCount);
             }
         }
 
@@ -195,7 +148,7 @@ namespace Voxxy {
 
             var angle = Quaternion.LookRotation(occludingDirection);
 
-            var centerOffset = new Vector3(-vox.Size.x * Settings.Center.x + 0.5f, -vox.Size.y * Settings.Center.y + 0.5f, -vox.Size.z * Settings.Center.z + 0.5f);
+            var centerOffset = new Vector3(-vox.Size.x * Center.x + 0.5f, -vox.Size.y * Center.y + 0.5f, -vox.Size.z * Center.z + 0.5f);
 
             for(var x = from.x; x < to.x; ++x) {
                 for(var y = from.y; y < to.y; ++y) {
@@ -203,7 +156,7 @@ namespace Voxxy {
                         var planeX = from.x == to.x - 1 ? z : x;
                         var planeY = from.y == to.y - 1 ? z : y;
                         if(plane[planeX, planeY].type == VoxelType.Visible) {
-                            var face = new VoxelFace(plane, planeExtent, Settings.MaxPercent / 100f);
+                            var face = new VoxelFace(plane, planeExtent, MaxPercent / 100f);
                             face.Create(new Coordinate(planeX, planeY));
 
                             while(face.Extend()) {
@@ -225,18 +178,18 @@ namespace Voxxy {
                                 faceCenter = new Vector3(face.Bounds.center.x, y, face.Bounds.center.y);
                             }
 
-                            vertex0 = Settings.ScaleFactor * (centerOffset + faceCenter + vertex0);
-                            vertex1 = Settings.ScaleFactor * (centerOffset + faceCenter + vertex1);
-                            vertex2 = Settings.ScaleFactor * (centerOffset + faceCenter + vertex2);
-                            vertex3 = Settings.ScaleFactor * (centerOffset + faceCenter + vertex3);
+                            vertex0 = ScaleFactor * (centerOffset + faceCenter + vertex0);
+                            vertex1 = ScaleFactor * (centerOffset + faceCenter + vertex1);
+                            vertex2 = ScaleFactor * (centerOffset + faceCenter + vertex2);
+                            vertex3 = ScaleFactor * (centerOffset + faceCenter + vertex3);
 
                             // Switch texture for specific direction since we go through the block the same way for each and need to flip.
                             var texture = face.GetTexture(occludingDirection == Coordinate.forward || occludingDirection == Coordinate.left, occludingDirection == Coordinate.down);
                             meshBuilder.AddQuad(vertex0, vertex1, vertex2, vertex3, texture);
 
                             if(meshBuilder.VertexCount > 65000) {
-                                Settings.Message = "VOX model contains more then 65,000 vertices which cannot be stored in a single Unity Mesh.  Try dividing VOX file into simpler shapes and importing as multiple meshes.";
-                                Settings.Success = false;
+                                Message = "VOX model contains more then 65,000 vertices which cannot be stored in a single Unity Mesh.  Try dividing VOX file into simpler shapes and importing as multiple meshes.";
+                                Success = false;
                                 return;
                             }
 
@@ -250,38 +203,49 @@ namespace Voxxy {
         private MeshBuilder meshBuilder;
 
         private void UpdateMaterialAndTexture() {
-            var voxPath = AssetDatabase.GetAssetPath(Settings.VoxAsset);
-            var assetPath = voxPath.Replace(".vox", ".asset");
+            //var voxPath = AssetDatabase.GetAssetPath(VoxAsset);
+            //var voxInfo = new FileInfo(VoxAssetPath);
+            //var assetPath = VoxAssetPath.Replace(voxInfo.Extension, ".asset");
 
-            CreateOrUpdateMesh(assetPath);
-            Texture2D existingAtlas = AddOrUpdateTexture(assetPath);
-            AddOrUpdateMaterial(assetPath, existingAtlas);
-            AddOrUpdateSettings(assetPath);
+            CreateOrUpdateMesh();
+            Texture2D atlas = CreateOrUpdateTexture();
+            CreateOrUpdateMaterial(atlas);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        private void CreateOrUpdateMesh(string assetPath) {
-            var newMesh = meshBuilder.Mesh;
-            var existingMesh = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
-            if(existingMesh == null) {
-                AssetDatabase.CreateAsset(newMesh, assetPath);
-                existingMesh = newMesh;
+        private void CreateOrUpdateMesh() {
+            var voxFileInfo = new FileInfo(VoxAssetPath);
+            var meshPath = VoxAssetPath.Replace(voxFileInfo.Extension, "Mesh.asset");
+            if(!string.IsNullOrEmpty(meshGuid)) {
+                meshPath = AssetDatabase.GUIDToAssetPath(meshGuid);
+            }
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            if(mesh == null) {
+                mesh = meshBuilder.Mesh;
+                AssetDatabase.CreateAsset(mesh, meshPath);
+                meshGuid = AssetDatabase.AssetPathToGUID(meshPath);
             }
             else {
-                existingMesh.triangles = null;
-                existingMesh.uv = null;
-                existingMesh.vertices = newMesh.vertices;
-                existingMesh.uv = newMesh.uv;
-                existingMesh.triangles = newMesh.triangles;
-                existingMesh.RecalculateNormals();
+                mesh.triangles = null;
+                mesh.uv = null;
+                mesh.vertices = meshBuilder.Mesh.vertices;
+                mesh.uv = meshBuilder.Mesh.uv;
+                mesh.triangles = meshBuilder.Mesh.triangles;
+                mesh.RecalculateNormals();
             }
-            Mesh = existingMesh;
         }
 
-        private Texture2D AddOrUpdateTexture(string assetPath) {
-            var pngPath = assetPath.Replace(".asset", ".png");
+        [SerializeField]
+        private string meshGuid;
+
+        private Texture2D CreateOrUpdateTexture() {
+            var voxFileInfo = new FileInfo(VoxAssetPath);
+            var pngPath = VoxAssetPath.Replace(voxFileInfo.Extension, "Albedo.png");
+            if(!string.IsNullOrEmpty(textureGuid)) {
+                pngPath = AssetDatabase.GUIDToAssetPath(textureGuid);
+            }
 
             var pngFileInfo = new FileInfo(pngPath);
             var alreadyExists = pngFileInfo.Exists;
@@ -303,36 +267,39 @@ namespace Voxxy {
                 importer.maxTextureSize = Mathf.Max(newAtlas.width, newAtlas.height);
                 importer.textureFormat = TextureImporterFormat.ARGB32;
                 AssetDatabase.ImportAsset(pngPath);
+                textureGuid = AssetDatabase.AssetPathToGUID(pngPath);
             }
 
             var existingAtlas = AssetDatabase.LoadAssetAtPath<Texture2D>(pngPath);
             return existingAtlas;
         }
 
-        private void AddOrUpdateMaterial(string assetPath, Texture2D existingAtlas) {
-            var existingMaterial = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
-            if(existingMaterial == null) {
-                existingMaterial = new Material(Shader.Find("Standard"));
-                existingMaterial.name = Settings.VoxAsset.name + " Material";
-                AssetDatabase.AddObjectToAsset(existingMaterial, assetPath);
+        [SerializeField]
+        private string textureGuid;
+
+        private void CreateOrUpdateMaterial(Texture2D atlas) {
+            var voxFileInfo = new FileInfo(VoxAssetPath);
+            var materialPath = VoxAssetPath.Replace(voxFileInfo.Extension, "Opaque.mat");
+            if(!string.IsNullOrEmpty(materialGuid)) {
+                materialPath = AssetDatabase.GUIDToAssetPath(materialGuid);
             }
-            existingMaterial.SetTexture("_MainTex", existingAtlas);
-            Material = existingMaterial;
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if(material == null) {
+                material = new Material(Shader.Find("Standard"));
+                var voxAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(VoxAssetPath);
+                material.name =  voxAsset.name + " Material";
+                AssetDatabase.CreateAsset(material, materialPath);
+                materialGuid = AssetDatabase.AssetPathToGUID(materialPath);
+            }
+            material.SetTexture("_MainTex", atlas);
         }
 
-        private void AddOrUpdateSettings(string assetPath) {
-            var existingSettings = AssetDatabase.LoadAssetAtPath<VoxImportSettings>(assetPath);
-            if(existingSettings == null) {
-                //AssetDatabase.AddObjectToAsset(Settings, assetPath);
-            }
-            else {
-                // Do nothing, we are already editing the live asset version.
-            }
-        }
+        [SerializeField]
+        private string materialGuid;
 
-        public Mesh Mesh { get; private set; }
-
-        public Material Material { get; private set; }
 
     }
+
 }
+
+#endif

@@ -10,15 +10,16 @@ namespace Voxxy {
 
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
             var allChanges = importedAssets.Union(deletedAssets).Union(movedAssets);
-            bool voxChanged = allChanges.Any(e => e.EndsWith("vox", StringComparison.InvariantCultureIgnoreCase));
+            bool voxChanged = allChanges.Any(e => e.EndsWith(".vox", StringComparison.InvariantCultureIgnoreCase));
             if(voxChanged) {
-                var allActiveMeshes = UnityEngine.Object.FindObjectsOfType<VoxxyMesh>();
-                foreach(var activeMesh in allActiveMeshes) {
-                    activeMesh.Reimport();
-                }
+                // TODO: Change to VoxImporter.
+                //var allActiveMeshes = UnityEngine.Object.FindObjectsOfType<VoxxyMesh>();
+                //foreach(var activeMesh in allActiveMeshes) {
+                //    activeMesh.Reimport();
+                //}
             }
 
-            VoxxySharedAssets.RemoveDeletedAssets(deletedAssets);
+            //VoxxySharedAssets.RemoveDeletedAssets(deletedAssets);
         }
     }
 }
