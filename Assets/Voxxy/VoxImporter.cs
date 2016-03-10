@@ -14,6 +14,8 @@ namespace Voxxy {
         public string VoxAssetPath;
         public bool FillVoids = false;
 
+        public bool OptimizeMesh = true;
+
         public float ScaleFactor = 0.125f;
         public float LastScaleFactor = 0f;
 
@@ -239,6 +241,11 @@ namespace Voxxy {
                 mesh.triangles = meshBuilder.Mesh.triangles;
                 mesh.RecalculateNormals();
             }
+            if(OptimizeMesh) {
+                mesh.Optimize();
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         [SerializeField]

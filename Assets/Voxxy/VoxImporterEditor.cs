@@ -39,14 +39,13 @@ namespace Voxxy {
             var fillVoidsLabel = new GUIContent("Fill Voids", "Some VOX files have hollow centers to reduce the size of the VOX file, these cause larger than necessary meshes during import.  Filling voids can dramatically increase import time, so only select when necessary.");
             importer.FillVoids = EditorGUILayout.Toggle(fillVoidsLabel, importer.FillVoids);
 
-            // TODO: Model import option to fill in empty spaces - trade speed for mesh size.
-
             EditorGUILayout.LabelField("Mesh", headerStyle);
 
             var scaleLabel = new GUIContent("Scale Factor", "The number of unity units (i.e. meters) that each voxel will occupy.");
             importer.ScaleFactor = EditorGUILayout.FloatField(scaleLabel, importer.ScaleFactor);
 
-            // TODO: Other typical model import options.
+            var optimizeMesh = new GUIContent("Optimize Mesh", "The vertices and indices will be reordered for better GPU performance.");
+            importer.OptimizeMesh = EditorGUILayout.Toggle(optimizeMesh, importer.OptimizeMesh);
 
             var centerLabel = new GUIContent("Center", "The center of the model proportional to each axis.  This is proportional to the length of each side of the VOX extents - which may be larger than the model.");
             importer.Center = EditorGUILayout.Vector3Field(centerLabel, importer.Center);
@@ -68,7 +67,6 @@ namespace Voxxy {
                 importer.Revert();
             }
             if(GUILayout.Button("Apply")) {
-                // TODO: voxxyMesh.Assets.Refresh();
                 importer.Reimport();
             }
             GUILayout.EndHorizontal();
@@ -82,6 +80,20 @@ namespace Voxxy {
                 EditorGUILayout.HelpBox(importer.Message, messageType);
             }
 
+            // Helpful hints that we can fix up.
+            var lights = Light.GetLights(LightType.Directional, Int32.MaxValue);
+            var badBiasLight = lights.FirstOrDefault(e => e.shadowNormalBias > 0 && e.shadows != LightShadows.None);
+            if(badBiasLight != null) { 
+                EditorGUILayout.HelpBox(String.Format("Light '{0}' uses shadows and should have a Normal Bias of 0 for use with the sharp edges of voxel shapes.", badBiasLight.name), MessageType.Warning);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("");
+                if(GUILayout.Button("Fix Lights Normal Bias")) {
+                    badBiasLight.shadowNormalBias = 0;
+                }
+                GUILayout.Label("");
+                GUILayout.EndHorizontal();
+            }
+
         }
 
         private VoxImporter OpenOrCreateImporter(DefaultAsset voxAsset) {
@@ -92,7 +104,7 @@ namespace Voxxy {
             if(!settingsInfo.Exists) {
                 var importer = ScriptableObject.CreateInstance<VoxImporter>();
                 importer.VoxAssetPath = voxAssetPath;
-                // TODO: settings.hideFlags = HideFlags.HideInHierarchy;
+                importer.hideFlags = HideFlags.HideInHierarchy;
                 AssetDatabase.CreateAsset(importer, settingsPath);
                 AssetDatabase.SaveAssets();
                 return importer;
