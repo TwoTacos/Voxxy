@@ -34,6 +34,11 @@ namespace Voxxy {
 
             EditorGUILayout.LabelField("VOX Import Settings");
 
+            EditorGUILayout.LabelField("Model", headerStyle);
+
+            var fillVoidsLabel = new GUIContent("Fill Voids", "Some VOX files have hollow centers to reduce the size of the VOX file, these cause larger than necessary meshes during import.  Filling voids can dramatically increase import time, so only select when necessary.");
+            importer.FillVoids = EditorGUILayout.Toggle(fillVoidsLabel, importer.FillVoids);
+
             // TODO: Model import option to fill in empty spaces - trade speed for mesh size.
 
             EditorGUILayout.LabelField("Mesh", headerStyle);

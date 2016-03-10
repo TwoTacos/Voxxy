@@ -12,6 +12,7 @@ namespace Voxxy {
     public class VoxImporter : ScriptableObject {
 
         public string VoxAssetPath;
+        public bool FillVoids = false;
 
         public float ScaleFactor = 0.125f;
         public float LastScaleFactor = 0f;
@@ -71,10 +72,13 @@ namespace Voxxy {
                 var color = vox.Palette[voxel.Value];
                 model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
             }
-            foreach(var coord in Coordinate.Shell(Coordinate.zero, vox.Size)) {
-                model.Flood(coord, Voxel.unknown, Voxel.empty);
+
+            if(FillVoids) {
+                foreach(var coord in Coordinate.Shell(Coordinate.zero, vox.Size)) {
+                    model.Flood(coord, Voxel.unknown, Voxel.empty);
+                }
+                model.Replace(Voxel.unknown, Voxel.occluded);
             }
-            model.Replace(Voxel.unknown, Voxel.occluded);
 
             var voxAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(VoxAssetPath);
             meshBuilder = new MeshBuilder(voxAsset.name + " VOX Model");
