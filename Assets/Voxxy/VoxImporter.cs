@@ -11,24 +11,46 @@ using UnityEngine;
 namespace Voxxy {
     public class VoxImporter : ScriptableObject {
 
+
+        [HideInInspector]
         public string VoxAssetPath;
+
+        [HideInInspector]
         public bool FillVoids = false;
 
+        [HideInInspector]
         public bool OptimizeMesh = true;
 
+        [HideInInspector]
         public float ScaleFactor = 0.125f;
-        public float LastScaleFactor = 0f;
 
+        [HideInInspector]
         public Vector3 Center = new Vector3(0.5f, 0.5f, 0.5f);
-        public Vector3 LastCenter = new Vector3(0.5f, 0.5f, 0.5f);
 
+        [HideInInspector]
         public int MaxPercent = 40;
+
+        [HideInInspector]
+        public bool LastFillVoids = false;
+        [HideInInspector]
+        public bool LastOptimizeMesh = true;
+        [HideInInspector]
+        public float LastScaleFactor = 0f;
+        [HideInInspector]
+        public Vector3 LastCenter = new Vector3(0.5f, 0.5f, 0.5f);
+        [HideInInspector]
         public int LastMaxPercent = 0;
-
+        [HideInInspector]
         public bool Success;
+        [HideInInspector]
         public string Message;
-
+        [HideInInspector]
         public DateTime FileDate;
+
+        [HideInInspector]
+        public bool ImportDefaultPalette = true;
+        [HideInInspector]
+        public List<Texture2D> Palettes;
 
         public bool HaveChanged(FileInfo file) {
             return FileDate != file.LastWriteTimeUtc || HaveImportSettingsChanged();
@@ -36,13 +58,15 @@ namespace Voxxy {
         }
 
         public bool HaveImportSettingsChanged() {
-            return Center != LastCenter || ScaleFactor != LastScaleFactor || MaxPercent != LastMaxPercent;
+            return Center != LastCenter || ScaleFactor != LastScaleFactor || MaxPercent != LastMaxPercent || FillVoids != LastFillVoids || OptimizeMesh != LastOptimizeMesh;
         }
 
         public void Revert() {
             Center = LastCenter;
             ScaleFactor = LastScaleFactor;
             MaxPercent = LastMaxPercent;
+            FillVoids = LastFillVoids;
+            OptimizeMesh = LastOptimizeMesh;
         }
 
         private VoxFile vox;
@@ -54,6 +78,8 @@ namespace Voxxy {
             LastCenter = Center;
             LastScaleFactor = ScaleFactor;
             LastMaxPercent = MaxPercent;
+            LastFillVoids = FillVoids;
+            LastOptimizeMesh = OptimizeMesh;
 
             textureGuid = null;
             meshGuid = null;
@@ -249,6 +275,7 @@ namespace Voxxy {
         }
 
         [SerializeField]
+        [HideInInspector]
         private string meshGuid;
 
         private Texture2D CreateOrUpdateTexture() {
@@ -286,6 +313,7 @@ namespace Voxxy {
         }
 
         [SerializeField]
+        [HideInInspector]
         private string textureGuid;
 
         private void CreateOrUpdateMaterial(Texture2D atlas) {
@@ -306,6 +334,7 @@ namespace Voxxy {
         }
 
         [SerializeField]
+        [HideInInspector]
         private string materialGuid;
 
 

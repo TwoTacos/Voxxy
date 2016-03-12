@@ -12,11 +12,11 @@ namespace Voxxy {
             var allChanges = importedAssets.Union(deletedAssets).Union(movedAssets);
             bool voxChanged = allChanges.Any(e => e.EndsWith(".vox", StringComparison.InvariantCultureIgnoreCase));
             if(voxChanged) {
-                // TODO: Change to VoxImporter.
-                //var allActiveMeshes = UnityEngine.Object.FindObjectsOfType<VoxxyMesh>();
-                //foreach(var activeMesh in allActiveMeshes) {
-                //    activeMesh.Reimport();
-                //}
+                foreach(var change in allChanges) {
+                    var voxAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(change);
+                    var importer = VoxImporterEditor.OpenOrCreateImporter(voxAsset);
+                    importer.Reimport();
+                }
             }
 
             //VoxxySharedAssets.RemoveDeletedAssets(deletedAssets);

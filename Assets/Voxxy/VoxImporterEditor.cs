@@ -32,7 +32,12 @@ namespace Voxxy {
             var headerStyle = new GUIStyle();
             headerStyle.fontStyle = FontStyle.Bold;
 
+            GUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("VOX Import Settings");
+            if(GUILayout.Button("Reimport")) {
+                importer.Reimport();
+            }
+            GUILayout.EndHorizontal();
 
             EditorGUILayout.LabelField("Model", headerStyle);
 
@@ -53,12 +58,26 @@ namespace Voxxy {
             var percentLabel = new GUIContent("Max Occlusion", "The maximum percentage of occlusion allowed when expanding surfaces.  0% will never expand the surface and will minimize overdraw but will create many more triangles.  100% will expand surfaces behind other surfaces whenever it can, reducing triangles and increasing overdraw.  40% is generally a good balance.");
             importer.MaxPercent = EditorGUILayout.IntSlider(percentLabel, importer.MaxPercent, 0, 100);
 
+            EditorGUILayout.LabelField("Textures", headerStyle);
+
+            var defaultPaletteLabel = new GUIContent("Import Default Palette", "Import the palette that is inside the VOX file (if one exists) and make it available as palette #0.");
+            importer.ImportDefaultPalette = EditorGUILayout.Toggle(defaultPaletteLabel, importer.ImportDefaultPalette);
+
+            for(int i = 0;  i < importer.Palettes.Count(); ++i) {
+                var palette = importer.Palettes[i];
+                var additionalPaletteLabel = new GUIContent("Import Palette " + (i + 1).ToString(), "Import an additional palette as a 256x1 PNG image which can be substituted in the model as palette #" + (i + 1).ToString() + ". Select the 'none' texture to remove.");
+                importer.Palettes[i] = EditorGUILayout.ObjectField(additionalPaletteLabel, palette, typeof(Texture2D), false) as Texture2D;
+            }
+            var newPaletteLabel = new GUIContent("New Palette", "Add an additional palette (a 256x1 PNG image) which can be substituted for the palette using the Voxxy Mesh component.");
+            var newPalette = EditorGUILayout.ObjectField(newPaletteLabel, null, typeof(Texture2D), false) as Texture2D;
+            if(newPalette != null) {
+                importer.Palettes.Add(newPalette);
+            }
+            importer.Palettes.Remove(null);
+
             GUILayout.BeginHorizontal();
             GUILayout.Label("");
             GUILayout.Label("");
-            if(GUILayout.Button("Reimport")) {
-                importer.Reimport();
-            }
             GUILayout.Label("");
             if(!importer.HaveImportSettingsChanged()) {
                 GUI.enabled = false;
@@ -96,7 +115,7 @@ namespace Voxxy {
 
         }
 
-        private VoxImporter OpenOrCreateImporter(DefaultAsset voxAsset) {
+        public static VoxImporter OpenOrCreateImporter(DefaultAsset voxAsset) {
             var voxAssetPath = AssetDatabase.GetAssetPath(voxAsset);
             var voxFileInfo = new FileInfo(voxAssetPath);
             var settingsPath = voxAssetPath.Replace(voxFileInfo.Extension, "Settings.asset");
@@ -104,7 +123,6 @@ namespace Voxxy {
             if(!settingsInfo.Exists) {
                 var importer = ScriptableObject.CreateInstance<VoxImporter>();
                 importer.VoxAssetPath = voxAssetPath;
-                importer.hideFlags = HideFlags.HideInHierarchy;
                 AssetDatabase.CreateAsset(importer, settingsPath);
                 AssetDatabase.SaveAssets();
                 return importer;
