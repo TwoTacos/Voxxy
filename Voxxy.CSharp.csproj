@@ -64,6 +64,10 @@
   <ItemGroup>
     <Compile Include="Assets\Voxxy\Coordinate.cs" />
     <Compile Include="Assets\Voxxy\MeshBuilder.cs" />
+    <Compile Include="Assets\Voxxy\Scratch\Scripts\Drill.cs" />
+    <Compile Include="Assets\Voxxy\Scratch\Scripts\Move.cs" />
+    <Compile Include="Assets\Voxxy\Scratch\Scripts\Pulse.cs" />
+    <Compile Include="Assets\Voxxy\Scratch\Scripts\Rotate.cs" />
     <Compile Include="Assets\Voxxy\Todo.cs" />
     <Compile Include="Assets\Voxxy\VoxFile.cs" />
     <Compile Include="Assets\Voxxy\VoxImporter.cs" />

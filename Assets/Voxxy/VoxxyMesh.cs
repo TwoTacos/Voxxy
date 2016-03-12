@@ -1,12 +1,15 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 
 namespace Voxxy {
 
@@ -15,68 +18,49 @@ namespace Voxxy {
     [RequireComponent(typeof(MeshRenderer))]
     public class VoxxyMesh : MonoBehaviour {
 
-        //public DefaultAsset VoxAsset;
+        public DefaultAsset VoxAsset;
 
-        //public VoxxySharedAssets Assets {
-        //    get {
-        //        if(assets == null) {
-        //            assets = VoxxySharedAssets.GetAssetsForModel(VoxAsset);
-        //        }
-        //        return assets;
-        //    }
-        //}
-        //private VoxxySharedAssets assets;
+        [SerializeField]
+        [HideInInspector]
+        private DefaultAsset LastVoxAsset;
 
-        //private void ClearModel() {
-        //    gameObject.GetComponent<MeshFilter>().sharedMesh = null;
-        //    if(gameObject.GetComponent<MeshRenderer>().sharedMaterial != null) {
-        //        gameObject.GetComponent<MeshRenderer>().sharedMaterial.SetTexture("_MainTex", null);
-        //    }
+        /// <summary>
+        /// This method, along with the ExecuteInEditMode class attribute re-imports the model when Unity starts up or the model is enabled.
+        /// This ensures that any changes to the VOX file when Unity was not running is automatically reflected in the model.
+        /// </summary>
+        internal void OnEnable() {
+            Refresh();
+        }
 
-        //    // on faile
-        //    {
-        //        gameObject.GetComponent<MeshFilter>().sharedMesh = null;
-        //        gameObject.GetComponent<MeshRenderer>().sharedMaterial = null;
-        //    }
+        /// <summary>
+        /// This method, along with the ExecuteInEditMode class attribute re-imports the model whenever any of the import attributes above is changed.
+        /// </summary>
+        internal void Update() {
+            Refresh();
+        }
 
-        //}
+        public void Refresh() {
+            if(VoxAsset != LastVoxAsset) {
+                if(VoxAsset == null) {
+                    SetMeshAndMaterial(null, null);
+                }
+                else {
+                    var importer = VoxImporterEditor.OpenOrCreateImporter(VoxAsset);
+                    SetMeshAndMaterial(importer.Mesh, importer.Material);
+                }
+                LastVoxAsset = VoxAsset;
+            }
+        }
 
-
-        ///// <summary>
-        ///// This method, along with the ExecuteInEditMode class attribute re-imports the model when Unity starts up or the model is enabled.
-        ///// This ensures that any changes to the VOX file when Unity was not running is automatically reflected in the model.
-        ///// </summary>
-        //internal void OnEnable() {
-        //    Refresh();
-        //}
-
-        ///// <summary>
-        ///// This method, along with the ExecuteInEditMode class attribute re-imports the model whenever any of the import attributes above is changed.
-        ///// </summary>
-        //internal void Update() {
-        //    Refresh();
-        //}
-
-        //[ContextMenu("Reimport")]
-        //public void Reimport() {
-        //    if(Assets != null) {
-        //        Assets.Reimport();
-        //        Bind();
-        //    }
-        //}
-
-        //[ContextMenu("Refresh")] 
-        //public void Refresh() {
-        //    if(Assets != null) {
-        //        Assets.Refresh();
-        //        Bind();
-        //    }
-        //}
-
-        //private void Bind() {
-        //    gameObject.GetComponent<MeshFilter>().sharedMesh = assets.Mesh;
-        //    gameObject.GetComponent<MeshRenderer>().sharedMaterial = assets.Material;
-        //}
-
+        private void SetMeshAndMaterial(Mesh mesh, Material material) {
+            gameObject.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = gameObject.GetComponent<MeshRenderer>();
+            if(renderer.sharedMaterial == null || material != null) {
+                renderer.sharedMaterial = material;
+            }
+        }
     }
 }
+
+#endif
+

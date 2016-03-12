@@ -117,6 +117,9 @@ namespace Voxxy {
 
         public static VoxImporter OpenOrCreateImporter(DefaultAsset voxAsset) {
             var voxAssetPath = AssetDatabase.GetAssetPath(voxAsset);
+            if(string.IsNullOrEmpty(voxAssetPath)) {
+                return null;
+            }
             var voxFileInfo = new FileInfo(voxAssetPath);
             var settingsPath = voxAssetPath.Replace(voxFileInfo.Extension, "Settings.asset");
             var settingsInfo = new FileInfo(settingsPath);

@@ -22,6 +22,8 @@ bld/
 [Ll]ib/
 [Ll]ibrary/
 [Tt]emp/
+[Ss]cratch/
+[Bb]uilds/
 
 # Performance Logs
 PerfLogs/

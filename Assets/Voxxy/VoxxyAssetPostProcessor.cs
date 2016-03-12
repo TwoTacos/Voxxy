@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +17,9 @@ namespace Voxxy {
                 foreach(var change in allChanges) {
                     var voxAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(change);
                     var importer = VoxImporterEditor.OpenOrCreateImporter(voxAsset);
-                    importer.Reimport();
+                    if(importer != null) {
+                        importer.Reimport();
+                    }
                 }
             }
 
@@ -23,3 +27,5 @@ namespace Voxxy {
         }
     }
 }
+
+#endif

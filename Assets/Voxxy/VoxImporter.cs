@@ -11,7 +11,6 @@ using UnityEngine;
 namespace Voxxy {
     public class VoxImporter : ScriptableObject {
 
-
         [HideInInspector]
         public string VoxAssetPath;
 
@@ -258,7 +257,9 @@ namespace Voxxy {
 
         private void CreateOrUpdateMesh() {
             var voxFileInfo = new FileInfo(VoxAssetPath);
-            var meshPath = VoxAssetPath.Replace(voxFileInfo.Extension, "Mesh.asset");
+            CreateSubAssetFolder(VoxAssetPath, "Meshes");
+            var meshPath = VoxAssetPath.Replace(voxFileInfo.Name, "Meshes/" + voxFileInfo.Name);
+            meshPath = meshPath.Replace(voxFileInfo.Extension, "Mesh.asset");
             if(!string.IsNullOrEmpty(meshGuid)) {
                 meshPath = AssetDatabase.GUIDToAssetPath(meshGuid);
             }
@@ -287,9 +288,18 @@ namespace Voxxy {
         [HideInInspector]
         private string meshGuid;
 
+        public Mesh Mesh {
+            get {
+                var path = AssetDatabase.GUIDToAssetPath(meshGuid);
+                return AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            }
+        }
+
         private Texture2D CreateOrUpdateTexture(int index) {
             var voxFileInfo = new FileInfo(VoxAssetPath);
-            var pngPath = VoxAssetPath.Replace(voxFileInfo.Extension, String.Format("Albedo{0}.png", index));
+            CreateSubAssetFolder(VoxAssetPath, "Textures");
+            var pngPath = VoxAssetPath.Replace(voxFileInfo.Name, "Textures/" + voxFileInfo.Name);
+            pngPath = pngPath.Replace(voxFileInfo.Extension, String.Format("Albedo{0}.png", index));
             if(!string.IsNullOrEmpty(textureGuid)) {
                 pngPath = AssetDatabase.GUIDToAssetPath(textureGuid);
             }
@@ -371,9 +381,18 @@ namespace Voxxy {
         [HideInInspector]
         private string textureGuid;
 
+        public Texture2D Texture {
+            get {
+                var path = AssetDatabase.GUIDToAssetPath(textureGuid);
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            }
+        }
+
         private void CreateOrUpdateMaterial(Texture2D atlas) {
             var voxFileInfo = new FileInfo(VoxAssetPath);
-            var materialPath = VoxAssetPath.Replace(voxFileInfo.Extension, "Opaque.mat");
+            CreateSubAssetFolder(VoxAssetPath, "Materials");
+            var materialPath = VoxAssetPath.Replace(voxFileInfo.Name, "Materials/" + voxFileInfo.Name);
+            materialPath = materialPath.Replace(voxFileInfo.Extension, "Opaque.mat");
             if(!string.IsNullOrEmpty(materialGuid)) {
                 materialPath = AssetDatabase.GUIDToAssetPath(materialGuid);
             }
@@ -381,16 +400,32 @@ namespace Voxxy {
             if(material == null) {
                 material = new Material(Shader.Find("Standard"));
                 var voxAsset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(VoxAssetPath);
-                material.name =  voxAsset.name + " Material";
+                material.name = voxAsset.name + " Material";
                 AssetDatabase.CreateAsset(material, materialPath);
                 materialGuid = AssetDatabase.AssetPathToGUID(materialPath);
             }
             material.SetTexture("_MainTex", atlas);
         }
 
+        private void CreateSubAssetFolder(string path, string subFolder) {
+            var fi = new FileInfo(path);
+            var newFolder = Path.Combine(fi.DirectoryName, subFolder);
+            var di = new DirectoryInfo(newFolder);
+            if(!di.Exists) {
+                AssetDatabase.CreateFolder(path, subFolder);
+            }
+        }
+
         [SerializeField]
         [HideInInspector]
         private string materialGuid;
+
+        public Material Material {
+            get {
+                var path = AssetDatabase.GUIDToAssetPath(materialGuid);
+                return AssetDatabase.LoadAssetAtPath<Material>(path);
+            }
+        }
 
 
     }
