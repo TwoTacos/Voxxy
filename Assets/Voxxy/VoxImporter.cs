@@ -50,7 +50,7 @@ namespace Voxxy {
         [HideInInspector]
         public bool ImportDefaultPalette = true;
         [HideInInspector]
-        public List<Texture2D> Palettes;
+        public List<Texture2D> Palettes = new List<Texture2D>();
 
         public bool HaveChanged(FileInfo file) {
             return FileDate != file.LastWriteTimeUtc || HaveImportSettingsChanged();
@@ -87,17 +87,26 @@ namespace Voxxy {
 
             vox = new VoxFile();
             vox.Open(VoxAssetPath);
-            ConstructMesh();
+            ConstructMesh(GrayscalePalette());
         }
 
-        public void ConstructMesh() {
+        public Color[] GrayscalePalette() {
+            var palette = new Color[256];
+            for(int i = 0; i < 256; ++i) {
+                var f = i / 255.0f;
+                palette[i] = new Color(f, f, f);
+            }
+            return palette;
+        }
+
+        public void ConstructMesh(Color[] palette) {
 
             var model = new VoxelModel(vox.Size);
 
             model.Fill(Voxel.unknown);
             // Copy model into volume
             foreach(var voxel in vox.Voxels) {
-                var color = vox.Palette[voxel.Value];
+                var color = palette[voxel.Value];
                 model[(Coordinate)voxel.Key] = new Voxel(VoxelType.Visible, color);
             }
 
@@ -235,13 +244,13 @@ namespace Voxxy {
         private MeshBuilder meshBuilder;
 
         private void UpdateMaterialAndTexture() {
-            //var voxPath = AssetDatabase.GetAssetPath(VoxAsset);
-            //var voxInfo = new FileInfo(VoxAssetPath);
-            //var assetPath = VoxAssetPath.Replace(voxInfo.Extension, ".asset");
-
             CreateOrUpdateMesh();
-            Texture2D atlas = CreateOrUpdateTexture();
+            Texture2D atlas = CreateOrUpdateTexture(0);
             CreateOrUpdateMaterial(atlas);
+
+            for(int i = 0; i < Palettes.Count; ++i) {
+                CreateOrUpdateTexture(i + 1);
+            }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -278,9 +287,9 @@ namespace Voxxy {
         [HideInInspector]
         private string meshGuid;
 
-        private Texture2D CreateOrUpdateTexture() {
+        private Texture2D CreateOrUpdateTexture(int index) {
             var voxFileInfo = new FileInfo(VoxAssetPath);
-            var pngPath = VoxAssetPath.Replace(voxFileInfo.Extension, "Albedo.png");
+            var pngPath = VoxAssetPath.Replace(voxFileInfo.Extension, String.Format("Albedo{0}.png", index));
             if(!string.IsNullOrEmpty(textureGuid)) {
                 pngPath = AssetDatabase.GUIDToAssetPath(textureGuid);
             }
@@ -289,7 +298,12 @@ namespace Voxxy {
             var alreadyExists = pngFileInfo.Exists;
 
             var newAtlas = meshBuilder.Atlas;
-            var atlasPng = newAtlas.EncodeToPNG();
+            var palette = vox.Palette;
+            if(index > 0) {
+                palette = ExtractPalette(Palettes[index - 1]);
+            }
+            var coloredAtlas = Colorize(newAtlas, palette);
+            var atlasPng = coloredAtlas.EncodeToPNG();
             File.WriteAllBytes(pngPath, atlasPng);
 
             AssetDatabase.ImportAsset(pngPath);
@@ -297,19 +311,60 @@ namespace Voxxy {
             if(!alreadyExists) {
                 // default import settings suitable for voxel models.
                 var importer = AssetImporter.GetAtPath(pngPath) as TextureImporter;
-                importer.textureType = TextureImporterType.Image;
-                importer.alphaIsTransparency = false;
-                importer.grayscaleToAlpha = false;
-                importer.wrapMode = TextureWrapMode.Clamp;
-                importer.filterMode = FilterMode.Point;
-                importer.maxTextureSize = Mathf.Max(newAtlas.width, newAtlas.height);
-                importer.textureFormat = TextureImporterFormat.ARGB32;
-                AssetDatabase.ImportAsset(pngPath);
-                textureGuid = AssetDatabase.AssetPathToGUID(pngPath);
+                if(importer != null) {
+                    importer.textureType = TextureImporterType.Image;
+                    importer.alphaIsTransparency = false;
+                    importer.grayscaleToAlpha = false;
+                    importer.wrapMode = TextureWrapMode.Clamp;
+                    importer.filterMode = FilterMode.Point;
+                    importer.maxTextureSize = Mathf.Max(newAtlas.width, newAtlas.height);
+                    importer.textureFormat = TextureImporterFormat.ARGB32;
+                    AssetDatabase.ImportAsset(pngPath);
+                    textureGuid = AssetDatabase.AssetPathToGUID(pngPath);
+                }
             }
 
             var existingAtlas = AssetDatabase.LoadAssetAtPath<Texture2D>(pngPath);
             return existingAtlas;
+        }
+
+        /// <summary>
+        /// Given a grayscale texture with each gray representing an offset into the provided palette, return an image with the appropriate color.
+        /// </summary>
+        private Texture2D Colorize(Texture2D grayscale, Color[] palette) {
+            var colorized = new Texture2D(grayscale.width, grayscale.height);
+            //result.LoadRawTextureData(newAtlas.GetRawTextureData());
+            for(int x = 0; x < colorized.width; ++x) {
+                for(int y = 0; y < colorized.height; ++y) {
+                    var gray = grayscale.GetPixel(x, y);
+                    var color = palette[(int)(255 * gray.r)];
+                    colorized.SetPixel(x, y, color);
+                }
+            }
+            return colorized;
+        }
+
+        private static void MarkTextureReadable(Texture2D texture) {
+            string assetPath = AssetDatabase.GetAssetPath(texture);
+            var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if(importer != null && importer.textureType != TextureImporterType.Advanced && importer.isReadable == false) {
+                importer.textureType = TextureImporterType.Advanced;
+                importer.isReadable = true;
+                AssetDatabase.ImportAsset(assetPath);
+                AssetDatabase.Refresh();
+            }
+        }
+
+        private Color[] ExtractPalette(Texture2D image) {
+            MarkTextureReadable(image);
+            var palette = new Color[256];
+            if(image.width != 256 && image.height != 1) {
+                throw new ArgumentException("The provided image must have 256 colors that map to the palette.");
+            }
+            for(int i = 0; i < 256; ++i) {
+                palette[i] = image.GetPixel(i - 1, 0); // offset issue with VOX palettes.
+            }
+            return palette;
         }
 
         [SerializeField]
