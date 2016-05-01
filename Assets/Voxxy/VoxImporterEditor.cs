@@ -87,6 +87,8 @@ namespace Voxxy {
             }
             if(GUILayout.Button("Apply")) {
                 importer.Reimport();
+                AssetDatabase.Refresh();
+                AssetDatabase.SaveAssets();
             }
             GUILayout.EndHorizontal();
             GUI.enabled = true;

@@ -80,10 +80,6 @@ namespace Voxxy {
             LastFillVoids = FillVoids;
             LastOptimizeMesh = OptimizeMesh;
 
-            textureGuid = null;
-            meshGuid = null;
-            materialGuid = null;
-
             vox = new VoxFile();
             vox.Open(VoxAssetPath);
             ConstructMesh(GrayscalePalette());
@@ -250,7 +246,7 @@ namespace Voxxy {
             for(int i = 0; i < Palettes.Count; ++i) {
                 CreateOrUpdateTexture(i + 1);
             }
-
+            EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
@@ -280,12 +276,10 @@ namespace Voxxy {
             if(OptimizeMesh) {
                 mesh.Optimize();
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
         [SerializeField]
-        [HideInInspector]
+        //[HideInInspector]
         private string meshGuid;
 
         public Mesh Mesh {
@@ -378,7 +372,7 @@ namespace Voxxy {
         }
 
         [SerializeField]
-        [HideInInspector]
+        //[HideInInspector]
         private string textureGuid;
 
         public Texture2D Texture {
@@ -417,7 +411,7 @@ namespace Voxxy {
         }
 
         [SerializeField]
-        [HideInInspector]
+        //[HideInInspector]
         private string materialGuid;
 
         public Material Material {
